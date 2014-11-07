@@ -1,0 +1,11 @@
+mytar.c:	// TODO améliorer la fonction usage() pour que ce soit plus clair pour l'tutilisateur
+mytar.c:	// TODO création archive :  int creer_archive(char *archive_file, int param,int argc, char **argv)
+mytar.c:	// TODO ajouter un fichier dans l'archive : int archiver(int archive, char *filename)
+mytar.c:	// TODO ajouter un répertoire : int archiver_rep(int archive, char *rep)
+mytar.c:	// TODO extraction archive : int extraire_archive(char *archive_file)
+mytar.c:	// TODO ajout d'un fichier dans l'archive : int ajouter_fichier(char *archive_file, char *filename)
+mytar.c:	// TODO suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename)
+mytar.c:	// TODO verifie l'integrité de l'archive : int verifier_archive(int archive)
+param.c:	// TODO traiter les paramètres : int check_param(int argc, char **argv)
+param.c:	// TODO obtenir l'archive : char * getArchive(char *buf,int argc,char **argv)
+param.c:	// TODO renvoie la 1ère position du fichier à traiter : int getFirstPath(int argc, char **argv)
