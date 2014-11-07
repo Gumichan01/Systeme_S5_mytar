@@ -21,7 +21,7 @@
 // renvoie un nombre de paramètre >=0 si tout s'est bien passé, -1 sinon
 int check_param(int argc, char **argv)
 {
-	/// TODO traiter les paramètres : int check_param(int argc, char **argv)
+	// TODO traiter les paramètres : int check_param(int argc, char **argv)
 
 	return 0;
 }
@@ -29,7 +29,7 @@ int check_param(int argc, char **argv)
 // Stocke le nom du fichier archive dans buf et renvoie l'adresse de buf
 char * getArchive(char *buf,int argc,char **argv)
 {
-	// TODO obtenir l'archive : char * getArchive(char *buf,int argc,char **argv
+	// TODO obtenir l'archive : char * getArchive(char *buf,int argc,char **argv)
 	return buf;
 }
 

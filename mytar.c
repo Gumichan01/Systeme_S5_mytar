@@ -11,8 +11,8 @@
 *
 */
 
-/// @note : en dehors de la vérification, toutes les fonctions seront 
-/// des reprises des fonctions du TP 6 de système
+// @note : en dehors de la vérification, toutes les fonctions seront 
+// des reprises des fonctions du TP 6 de système
 
 #include "mytar.h"
 
@@ -21,8 +21,10 @@
 // usage
 void usage(char * prog)
 {
+	// TODO améliorer la fonction usage() pour que ce soit plus clair pour l'tutilisateur
+
 	if(prog != NULL)
-	{	// TODO améliorer la fonction usage() pour que ce soit plus clair pour l'tutilisateur
+	{
 		fprintf(stderr,"usage : %s [-c|a|d|l|x|k|s|C <rep>|v] -f <archive> <noms_fichiers> \n", prog);
 		//fprintf(stderr,"\t%s [-xf] <archive> \n", prog);
 	}
@@ -63,7 +65,7 @@ int extraire_archive(char *archive_file)				// extraction de l'archive
 
 int ajouter_fichier(char *archive_file, char *filename)
 {
-	// TODO ajout d'un fichier dans l'archive : int ajouter_fichier(int archive, char *filename)
+	// TODO ajout d'un fichier dans l'archive : int ajouter_fichier(char *archive_file, char *filename)
 	// @note tester flag_a
 	return 0;
 }
@@ -71,7 +73,7 @@ int ajouter_fichier(char *archive_file, char *filename)
 
 int supprimer_fichier(char *archive_file, char *filename)
 {
-	// TODO suppression d'un fichier dans l'archive : int supprimer_fichier(int archive, char *filename)
+	// TODO suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename)
 	// @note tester flag_d
 	return 0;
 }
