@@ -5,3 +5,18 @@ Auteurs : Luxon JEAN-PIERRE
 
 
 Ce projet consiste à créer une implémentation d'un programme d'archivage fonctionnant de manière analogue à tar.
+
+
+
+
+ == Compilation ==
+
+2 possibilités :
+
+	1 - Avec GCC sans utiliser de makefile de manière explicite
+	2 - Avec un makefile manuel (à venir)
+
+
+1 - Avec GCC sans utiliser de makefile de manière explicite
+
+	-> Faire dans le terminal $ gcc -Wall -pedantic -g *.c
