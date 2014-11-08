@@ -31,6 +31,12 @@
 #define CHECKSUM_SIZE 32	// Constante definissant la taille du checksum 
 #endif
 
+#ifndef BUFSIZE
+#define BUFSIZE 1024		// Constante definissant la taille du checksum 
+#endif
+
+#define DEBUG			// Constante pour le debogage
+
 
 typedef struct Entete{
 
@@ -47,8 +53,8 @@ typedef struct Entete{
 void usage(char *prog);					// usage
 int creer_archive(char *archive_file, int param,int argc, char **argv);		// creation de l'archive
 
-int archiver(int archive, char *filename);		// archiver un fichier  
-int archiver_rep(int archive, char *rep);		// archiver un répertoire
+void archiver(int archive, char *filename);		// archiver un fichier  
+void archiver_rep(int archive, char *rep);		// archiver un répertoire
 
 int extraire_archive(char *archive_file);		// extraction de l'archive
 

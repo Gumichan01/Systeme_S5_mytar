@@ -14,7 +14,6 @@
 #include "mytar.h"
 
 
-//#define DEBUG
 
 
 
@@ -43,7 +42,6 @@ int main(int argc, char **argv)
 
 	getArchive(archive_file,argc,argv);
 	param = getFirstPath(argc,argv);
-
 
 	if(flag_h)	//Si le flag -h est présent -> appel de usage
 	{

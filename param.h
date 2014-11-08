@@ -16,7 +16,7 @@
 #ifndef PARAM_INCLUDED_H
 #define PARAM_INCLUDED_H
 
-#define MAX_FILE 256	// 
+#define MAX_FILE 256	// Taille maxe du nom du fichier
 
 static int flag_h = 0; // flag personnalisé pour l'affichage de l'aide
 
@@ -27,7 +27,7 @@ static int flag_l = 0;	// flag liste des fichiers qui sont dans l'archive
 static int flag_x = 0;	// flag extraction de l'archive
 static int flag_k = 0;	// flag ne pas remplacer les fichiers existants à l'extraction
 static int flag_s = 0;	// flag liens symboliques à prendre en compte à l'archivage
-static int flag_C = 0;	// flag mettre le répertoire is en paramètre avec -C comme racine
+static int flag_C = 0;	// flag mettre le répertoire mis en paramètre avec -C comme racine
 static int flag_v = 0;	// flag verification intégrité de l'archive
 
 static int flag_f = 0;	// flag indiquant le chemin vers un fichier

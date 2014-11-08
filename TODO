@@ -1,7 +1,5 @@
-mytar.c:	// TODO améliorer la fonction usage() pour que ce soit plus clair pour l'tutilisateur
-mytar.c:	// TODO création archive :  int creer_archive(char *archive_file, int param,int argc, char **argv)
-mytar.c:	// TODO ajouter un fichier dans l'archive : int archiver(int archive, char *filename)
-mytar.c:	// TODO ajouter un répertoire : int archiver_rep(int archive, char *rep)
+mytar.c:	// TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur
+mytar.c:	// TODO mettre le checksum puis prendre en compte l'option '-s' : void archiver(int archive, char *filename)
 mytar.c:	// TODO extraction archive : int extraire_archive(char *archive_file)
 mytar.c:	// TODO ajout d'un fichier dans l'archive : int ajouter_fichier(char *archive_file, char *filename)
 mytar.c:	// TODO suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename)
