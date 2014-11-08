@@ -79,7 +79,7 @@ int creer_archive(char *archive_file, int param,int argc, char **argv)	// creati
 
 void archiver(int archive, char *filename)				// archiver un fichier  
 {
-	// TODO mettre le checksum puis prendre en compte l'option '-s' : void archiver(int archive, char *filename)
+	// TODO mettre le checksum, poser verrou sur l'archive, puis prendre en compte l'option '-s' : void archiver(int archive, char *filename)
 	// @note tester flag_s
 	int j;
 	off_t debut;
@@ -92,6 +92,9 @@ void archiver(int archive, char *filename)				// archiver un fichier
 	char buf[BUFSIZE];
 	int lus;
 
+#ifdef DEBUG
+	printf("DEBUG : Archivage de %s\n",filename);
+#endif
 
 	if(lstat(filename,&s) == -1)
 	{
@@ -179,6 +182,10 @@ void archiver_rep(int archive, char *rep)				// archiver un répertoire
 
   	char nomFichier[MAX_FILE];
 
+#ifdef DEBUG
+	printf("DEBUG : Archivage de l'arborescence de %s\n", rep);
+#endif
+
 	dir = opendir(rep);
 
 	if(dir == NULL)
@@ -213,8 +220,137 @@ void archiver_rep(int archive, char *rep)				// archiver un répertoire
 
 int extraire_archive(char *archive_file)				// extraction de l'archive
 {
-	// TODO extraction archive : int extraire_archive(char *archive_file)
-	// @note tester flag_k
+	// TODO mettre verrou sur l'archive : int extraire_archive(char *archive_file)
+	struct stat s,tmp;
+	Entete info;
+
+	int fdOutput; 	// fd en ecriture sur le fichier désarchivé
+	int archive;	// fd en lecture sur l'archive
+	int j, taille_archive;
+
+	char buf[BUFSIZE];
+	char filename[BUFSIZE];
+	int lus;
+
+#ifdef DEBUG
+	printf("DEBUG : Extraction de %s \n", archive_file);
+#endif
+
+	if(stat(archive_file, &s) == -1)
+	{
+		err(1,"%s impossible d'ouvrir le fichier archive ",archive_file);
+	}
+
+
+	//printf("stat OK\n");
+	taille_archive = s.st_size;
+
+	if((archive = open(archive_file, O_RDONLY)) == -1)
+	{
+		err(1,"Impossible de creer %s ",archive_file);
+	}
+
+
+	// Tant qu'on n'est pas à la fin du fichier
+	while(lseek(archive,0,SEEK_CUR) != taille_archive)
+	{
+		// On lit l'entete
+
+		read(archive,&info.path_length,sizeof(info.path_length));
+		read(archive,&info.file_length,sizeof(off_t));
+		read(archive,&info.mode,sizeof(mode_t));
+		read(archive,&info.m_time,sizeof(time_t));
+		read(archive,&info.a_time,sizeof(time_t));
+		//read(archive,&info.checksum,sizeof(&info.checksum));
+		read(archive, filename, info.path_length);	// ecrire le nom du fichier
+
+		filename[info.path_length] = '\0';
+
+#ifdef DEBUG
+	printf("DEBUG : Extraction de %s hors de %s \n",filename, archive_file);
+#endif
+
+		// Si c'est un lien, on met juste le nom du fichier pointé par le lien
+		if(S_ISLNK(info.mode) > 0)
+		{
+			lus = read(archive,buf,info.file_length);	// on recupére le nom du fichier pointé par le lien
+			buf[info.file_length] = '\0';
+
+			if(lus == -1)
+			{
+				warn(" Impossible de lire le contenu de %s : ", filename);
+				continue;
+			}
+
+			if(flag_k)	// Si l'option -k existe
+			{
+				if(lstat(filename,&tmp) != -1)
+				{
+					continue;
+				}
+			}
+		
+			symlink(buf,filename);	// On crée le lien filename sur buf
+
+			continue;
+		}
+
+		if(S_ISDIR(info.mode) > 0)
+		{
+			if(flag_k)
+			{
+				if(lstat(filename,&tmp) != -1)
+				{
+					continue;
+				}
+			}
+
+			if(mkdir(filename, info.mode) == -1)
+			{
+				warn("Erreur à la création du repertoire %s ", filename);
+			}
+
+			continue;
+		}
+
+
+		if(flag_k)
+		{
+			if(lstat(filename,&tmp) != -1)
+			{
+				lseek(archive, info.file_length,SEEK_CUR);
+				continue;	/* On passe au fichier suivant */
+			}
+		}
+
+		/* On ouvre le fichier à desarchiver en écriture*/
+		fdOutput = open(filename, O_WRONLY | O_TRUNC | O_CREAT, info.mode);
+
+		if(fdOutput == -1)
+		{
+			//close(archive);
+			warn("erreur à l'ouverture du fichier archivé %s ",filename);
+			continue;
+		}
+
+		for(j = 0 ; j < info.file_length/BUFSIZE; j++)
+		{
+			lus = read(archive,buf, BUFSIZE);
+			write(fdOutput,buf,lus);
+		}
+
+		lus = read(archive,buf, info.file_length % BUFSIZE);
+		write(fdOutput,buf,lus);
+
+		close(fdOutput);
+	}
+
+	close(archive);
+
+#ifdef DEBUG
+	printf("DEBUG : Fin de l'extraction \n");
+#endif
+
 	return 0;
 }
 
