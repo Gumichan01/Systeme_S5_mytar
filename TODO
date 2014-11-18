@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 nom    |no ligne| Commentaire
 
 mytar.c:24:	/* TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur : void usage(char * prog) */
@@ -6,3 +7,15 @@ mytar.c:88:	/* TODO tester le flag -v, poser verrou sur l'archive : void archive
 mytar.c:248:	/* TODO mettre verrou sur l'archive : int extraire_archive(char *archive_file) */
 mytar.c:393:	/* TODO ajout d'un fichier dans l'archive : int ajouter_fichier(char *archive_file, char *filename) */
 mytar.c:401:	/* TODO suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename) */
+=======
+Fichier| Ligne | Description
+mytar.c:24:	// TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur
+mytar.c:82:	// TODO mettre le checksum, poser verrou sur l'archive, puis prendre en compte l'option '-s' : void archiver(int archive, char *filename)
+mytar.c:223:	// TODO mettre verrou sur l'archive : int extraire_archive(char *archive_file)
+mytar.c:359:	// TODO ajout d'un fichier dans l'archive : int ajouter_fichier(char *archive_file, char *filename)
+mytar.c:367:	// TODO suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename)
+mytar.c:375:	// TODO verifie l'integrité de l'archive : int verifier_archive(int archive)
+param.c:24:	// TODO traiter les paramètres : int check_param(int argc, char **argv)
+param.c:32:	// TODO obtenir l'archive : char * getArchive(char *buf,int argc,char **argv)
+param.c:39:	// TODO renvoie la 1ère position du fichier à traiter : int getFirstPath(int argc, char **argv)
+>>>>>>> ebff11861459290d441ff37c20dd9c80e99aa8f0
