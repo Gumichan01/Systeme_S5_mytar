@@ -16,13 +16,14 @@
 
 
 
-
 int main(int argc, char **argv)
 {	
 	int nb_param;
 	char archive_file[MAX_FILE];
-	int param = 0, i; // on met param à 0 mais ça peut changer 
+	int param = 0; /* on met param à 0 mais ça peut changer */
+	Parametres sp;
 
+	init(&sp);	/* On met tous les champs à zero */
 
 	if(argc < 2 )
 	{
@@ -30,7 +31,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if( ( nb_param = check_param(argc,argv)) == -1)
+	if( ( nb_param = check_param(argc,argv,&sp)) == -1)
 	{
 		fprintf(stderr," %s : Problème avec les options du programme, faire %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
 		return EXIT_FAILURE;
@@ -40,42 +41,54 @@ int main(int argc, char **argv)
 	printf("DEBUG : Il y a %d paramètres actifs\n", nb_param);
 #endif
 
-	getArchive(archive_file,argc,argv);
-	param = getFirstPath(argc,argv);
-
-	if(flag_h)	//Si le flag -h est présent -> appel de usage
-	{
+	/*Aucun parametre ? option -h actif ?*/
+	if(nb_param == 0 || sp.flag_h)
+	{	/* On n'a aucun arametre ou l'option -h est active */
 		usage(argv[0]);	
 	}
 
-	// Si le flag -f n'est pas présent, arrêt du programme
-	if(!flag_f)
+
+#ifdef DEBUG
+	printf("DEBUG : sp.flag_f : %d \n", sp.flag_f);
+#endif
+
+	/* Si le sp.flag -f n'est pas présent, arrêt du programme */
+	if(!sp.flag_f)
 	{
 		fprintf(stderr," %s : Erreur fatal, option -f (obligatoire) non présente, faire %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if(flag_c)	// Si le flag -c existe -> on crée l'archive
+	getArchive(archive_file,argc,argv);
+	param = getFirstPath(argc,argv);
+
+
+#ifdef DEBUG
+	printf("DEBUG : Archive : %s ; param : %d ; \n", archive_file, param);
+#endif
+
+
+	if(sp.flag_c)	/* Si le sp.flag -c existe -> on crée l'archive */
 	{
 
 #ifdef DEBUG
-		printf("DEBUG : flag_c actif -> création archive \n");
+		printf("DEBUG : sp.flag_c actif -> création archive \n");
 #endif
 
-		if(creer_archive(archive_file,param,argc, argv) == -1)
+		if(creer_archive(archive_file,param,argc, argv,&sp) == -1)
 		{
 			fprintf(stderr,"%s : impossible de créer l'archive \n",argv[0]);
 			return EXIT_FAILURE;
 		}
 
 	}
-	else if(flag_x)
+	else if(sp.flag_x)
 	{
 #ifdef DEBUG
-		printf("DEBUG : flag_x actif -> extraction archive \n");
+		printf("DEBUG : sp.flag_x actif -> extraction archive \n");
 #endif
 
-		if(extraire_archive(archive_file) == -1)	// à modifier !!!!!
+		if(extraire_archive(archive_file,&sp) == -1)
 		{
 			fprintf(stderr,"%s : impossible d'extraire l'archive \n",argv[0]);
 			return EXIT_FAILURE;
@@ -83,49 +96,34 @@ int main(int argc, char **argv)
 
 
 	}
-	else if(flag_a)
+	else if(sp.flag_a)
 	{
 #ifdef DEBUG
-		printf("DEBUG : flag_a actif -> ajout fichier dans archive \n");
+		printf("DEBUG : sp.flag_a actif -> ajout fichier dans archive \n");
 #endif
 
-		for(i = param; i < argc; i++)
+		if(ajouter_fichier(archive_file,argv[param],&sp) == -1)	
 		{
-			if(ajouter_fichier(archive_file,argv[i]) == -1)	// à modifier !!!!!
-			{
-				fprintf(stderr,"%s : impossible d'ajouter le fichier %s dans l'archive %s \n",argv[0], argv[i], archive_file);
-				//return EXIT_FAILURE;
-			}
-		}
-	}
-	else if(flag_d)
-	{
-#ifdef DEBUG
-		printf("DEBUG : flag_d actif -> suppression fichier dans archive \n");
-#endif
-
-		for(i = param; i < argc; i++)
-		{
-			if(supprimer_fichier(archive_file,argv[i]) == -1)	// à modifier !!!!!
-			{
-				fprintf(stderr,"%s : impossible de supprimer le fichier %s de l'archive %s \n",argv[0],argv[i],archive_file);
-				//return EXIT_FAILURE;
-			}
-		}
-
-	}
-	else if(flag_v)
-	{
-#ifdef DEBUG
-		printf("DEBUG : flag_v actif -> verification archive \n");
-#endif
-
-		if(verifier_archive(archive_file) == -1)	// à modifier !!!!!
-		{
-			fprintf(stderr,"%s : problème lors de la vérification de l'archive \n",argv[0]);
+			fprintf(stderr,"%s : impossible d'ajouter le fichier %s dans l'archive %s \n",argv[0], argv[param], archive_file);
 			return EXIT_FAILURE;
 		}
 
+	}
+	else if(sp.flag_d)
+	{
+#ifdef DEBUG
+		printf("DEBUG : sp.flag_d actif -> suppression fichier dans archive \n");
+#endif
+
+		if(supprimer_fichier(archive_file,argv[param]) == -1)
+		{
+			fprintf(stderr,"%s : impossible de supprimer le fichier %s de l'archive %s \n",argv[0],argv[param],archive_file);
+			return EXIT_FAILURE;
+		}
+
+	}
+	else
+	{
 
 	}
 
