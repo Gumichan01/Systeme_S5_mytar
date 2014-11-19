@@ -39,7 +39,9 @@
 #define GRP_W 0010	/* Droit d'écriture pour le groupe */
 #define OTH_W 0001	/* Droit d'écriture pour les autres */
 
-
+#ifndef MD5SUM
+#define MD5SUM "md5sum"		/* Constante definissant la taille du checksum */
+#endif
 
 
 #define DEBUG			/* Constante pour le debogage */
@@ -58,18 +60,17 @@ typedef struct Entete{
 
 
 void usage(char *prog);										/* usage */
-int creer_archive(char *archive_file, int param,int argc, char **argv, Parametres *sp);		/* creation de l'archive */
+int creer_archive(const char *archive_file, int param,int argc, char **argv, Parametres *sp);		/* creation de l'archive */
 
 void archiver(int archive, char *filename, Parametres *sp);		/* archiver un fichier */
 void archiver_rep(int archive, char *rep, Parametres *sp);		/* archiver un répertoire */
 
-int extraire_archive(char *archive_file, Parametres *sp);		/* extraction de l'archive */
+int extraire_archive(const char *archive_file, Parametres *sp);		/* extraction de l'archive */
 
-int ajouter_fichier(char *archive_file, char *filename, Parametres *sp);
-int supprimer_fichier(char *archive_file, char *filename);
+int ajouter_fichier(const char *archive_file, char *filename, Parametres *sp);
+int supprimer_fichier(const char *archive_file, char *filename);
 
-int verifier_archive(char *archive_file);
-
+int md5sum(char *checksum, char * filename);	/* Calcule le md5 du fichier cible et le stocke dans la chaine checksum*/
 
 #endif /* MYTAR_INCLUDED_H */
 

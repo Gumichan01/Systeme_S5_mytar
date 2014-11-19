@@ -34,9 +34,8 @@ void usage(char * prog)
 
 /* creation de l'archive */
 /* archive_file : fichier archive; param : position du premier fichier path */
-int creer_archive(char *archive_file, int param,int argc, char **argv, Parametres *sp)
+int creer_archive(const char *archive_file, int param,int argc, char **argv, Parametres *sp)
 {
-	/* @note tester sp->flag_s */
 	int i;
 	int archive;
 
@@ -44,7 +43,7 @@ int creer_archive(char *archive_file, int param,int argc, char **argv, Parametre
 	printf("DEBUG : Ouverture du fichier %s\n", archive_file);
 #endif
 
-	if(sp == NULL) return -1;
+	if(sp == NULL) return -1;	/* La structure paramètre est NULL -> On arrete tout*/
 
 
 	if(!sp->flag_c)
@@ -85,14 +84,13 @@ int creer_archive(char *archive_file, int param,int argc, char **argv, Parametre
 /* archiver un fichier */
 void archiver(int archive, char *filename, Parametres *sp)
 {
-	/* TODO tester le flag -v, poser verrou sur l'archive : void archiver(int archive, char *filename) */
+	/* TODO poser verrou sur l'archive : void archiver(int archive, char *filename) */
 
 	int j;
+	int fdInput; 	/* fd en lecture */
 	off_t debut;
 
 	struct stat s;
-	int fdInput; 	/* fd en lecture */
-
 	Entete info;
 
 	char buf[BUFSIZE];
@@ -114,8 +112,18 @@ void archiver(int archive, char *filename, Parametres *sp)
 		info.mode = s.st_mode;
 		info.m_time = s.st_mtime;
 		info.a_time = s.st_atime;
-		memset(info.checksum,0,sizeof(info.checksum));
+		memset(info.checksum,0,sizeof(info.checksum));	/* On met le checksum à 0 */
 
+
+		if(sp->flag_v)
+		{		/* Verification -> on doit mettre le md5 du fichier cible */
+			if(md5sum(info.checksum, filename) == -1)
+			{
+				fprintf(stderr,"Erreur lors de l'obtention du md5 de %s ", filename);
+				fflush(stderr);
+			}
+
+		}
 
 		/* On ecrit dans l'archive */
 		debut = lseek(archive,0, SEEK_CUR);	/* On garde la position du début */
@@ -243,9 +251,9 @@ void archiver_rep(int archive, char *rep, Parametres *sp)
 
 
 /* extraction de l'archive */
-int extraire_archive(char *archive_file, Parametres *sp)
+int extraire_archive(const char *archive_file, Parametres *sp)
 {
-	/* TODO mettre verrou sur l'archive : int extraire_archive(char *archive_file) */
+	/* TODO mettre verrou sur l'archive : int extraire_archive(const char *archive_file) */
 	struct stat s,tmp;
 	Entete info;
 
@@ -388,22 +396,115 @@ int extraire_archive(char *archive_file, Parametres *sp)
 
 
 
-int ajouter_fichier(char *archive_file, char *filename, Parametres *sp)
+int ajouter_fichier(const char *archive_file, char *filename, Parametres *sp)
 {
-	/* TODO ajout d'un fichier dans l'archive : int ajouter_fichier(char *archive_file, char *filename) */
+	/* TODO ajout d'un fichier dans l'archive : int ajouter_fichier(const char *archive_file, char *filename) */
 	/* @note tester sp->flag_a */
 	return 0;
 }
 
 
-int supprimer_fichier(char *archive_file, char *filename)
+int supprimer_fichier(const char *archive_file, char *filename)
 {
-	/* TODO suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename) */
+	/* TODO suppression d'un fichier dans l'archive : int supprimer_fichier(const char *archive_file, char *filename) */
 	/* @note tester sp->flag_d */
 	return 0;
 }
 
 
+int md5sum(char *checksum, char * filename)
+{	/* TODO : corriger le bug lié au tableau arg*/
+	pid_t p;	/* Le pid récupéré depuis fork() */
+	int status;	/*Stocke le status du processus fils*/
+	char *arg[] = {MD5SUM,filename, NULL}; /* filename n'es pas évaluable */
+	int fd[2];	/* Les descripteurs de fichier en lecture/ecriture, pour le tube anonyme*/
+	int lus;	/* Le nombre de caractères lus dans le tube*/
+
+	if(filename == NULL) return -1;		/* fivhier non renseigné ? on retourne -1 */
+
+#ifdef DEBUG
+	printf("DEBUG : md5sum - creation du tube anonyme pour avori le md5 de %s \n",filename);
+#endif
+
+	if(pipe(fd) == -1)
+	{				/* Création du tube anonyme echoue ? */
+		warn(" pipe(fd) \n");
+		return -1;
+	}
+
+	p = fork();			/* Création du nouveau processus */
+
+	if(p > 0)	/* Père */
+	{
+		char buf[CHECKSUM_SIZE +1];	/* 32 caractères du chekcum +1 pour '\0' */
+
+		/*printf("Je suis le père\n");
+		fflush(stdout);*/
+
+		close(fd[1]);	/* Le père ferme le tube en ecriture */
+		wait(&status);	/* Il attend que son fils meure */
+
+		if(!WIFEXITED(&status))		/*Le fils a-t-il pu faire la tâche demandée ?*/
+		{	/*Non, donc il renvoie -1 */
+			/*fprintf(stderr, "md5sum - Echec lors de l'obtention du md5 de %s \n", filename);
+			fflush(stderr);	On force l'écriture */
+			close(fd[0]);
+			return -1;
+		}
+		
+		/* Tout va bien, */
+		lus = read(fd[0],buf,sizeof(buf));	/* On lit le checksum*/
+
+
+		if(lus == sizeof(buf))
+		{
+			buf[lus] = '\0';
+			strcpy(checksum,buf);
+			/*printf("md5 : %s\n",buf);*/
+	
+			close(fd[0]);
+			return 0;
+		}
+		else
+		{
+			close(fd[0]);
+			fprintf(stderr,"erreur read : \n");
+			fflush(stderr);
+			return -1;
+		}
+
+	}
+	else if(p == 0)	/* Fils */
+	{
+		/*printf("Je suis le fils\n");
+		fflush(stdout);*/
+
+		close(fd[0]);
+
+		if(dup2(fd[1], STDOUT_FILENO) == -1)	
+		{	/* Redirection stdout vers fd[1] impossible*/
+			perror(" Problème dup2 \n");
+			fflush(stderr);
+			exit(EXIT_FAILURE);
+		}
+
+		execvp("md5sum", arg);
+	
+		/* Si on arrive là -> echec*/
+		close(fd[1]);
+		exit(EXIT_FAILURE);
+	}
+	else
+	{
+		warn("ERREUR fork - \n");
+		close(fd[0]);
+		close(fd[1]);
+		return -1;
+	}
+
+
+	return 0;
+}
 
 
 
