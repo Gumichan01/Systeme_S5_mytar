@@ -102,9 +102,9 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_a actif -> ajout fichier dans archive \n");
 #endif
 
-		if(ajouter_fichier(archive_file,argv[param],&sp) == -1)	
+		if(ajouter_fichier(archive_file,param,argc,argv,&sp) == -1)	
 		{
-			fprintf(stderr,"%s : impossible d'ajouter le fichier %s dans l'archive %s \n",argv[0], argv[param], archive_file);
+			fprintf(stderr,"%s : Problème lors de l'ajout des fichiers dans l'archive %s \n",argv[0], archive_file);
 			return EXIT_FAILURE;
 		}
 
@@ -115,9 +115,9 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_d actif -> suppression fichier dans archive \n");
 #endif
 
-		if(supprimer_fichier(archive_file,argv[param]) == -1)
+		if(supprimer_fichiers(archive_file,param,argc,argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : impossible de supprimer le fichier %s de l'archive %s \n",argv[0],argv[param],archive_file);
+			fprintf(stderr,"%s : Problème lors de la suppression des fichiers de l'archive %s \n",argv[0],archive_file);
 			return EXIT_FAILURE;
 		}
 

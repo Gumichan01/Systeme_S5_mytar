@@ -2,8 +2,7 @@ nom    |no ligne| Commentaire
 
 mytar.c:24:	/* TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur : void usage(char * prog) */
 mytar.c:25:	/* TODO par exemple lister tous les usages possibles du programme : void usage(char * prog) */
-mytar.c:87:	/* TODO poser verrou sur l'archive : void archiver(int archive, char *filename) */
-mytar.c:256:	/* TODO mettre verrou sur l'archive : int extraire_archive(const char *archive_file) */
-mytar.c:401:	/* TODO ajout d'un fichier dans l'archive : int ajouter_fichier(const char *archive_file, char *filename) */
-mytar.c:409:	/* TODO suppression d'un fichier dans l'archive : int supprimer_fichier(const char *archive_file, char *filename) */
-mytar.c:416:{	/* TODO : corriger le bug lié au tableau arg*/
+mytar.c:107:	/* TODO tester l'option '-v' + faire le md5, poser verrou sur l'archive : void archiver(int archive, char *filename) */
+mytar.c:140:	/* TODO traiter le flag_v -> faire la fonction suivante : int getMD5(char *filename, char *checksum)*/
+mytar.c:275:	/* TODO mettre verrou sur l'archive : int extraire_archive(char *archive_file) */
+mytar.c:465:	/* TODO La suppression d'un répertoire */
