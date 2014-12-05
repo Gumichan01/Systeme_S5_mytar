@@ -17,11 +17,11 @@
 #ifndef MYTAR_POSIX_LIB_H
 #define MYTAR_POSIX_LIB_H
 
-
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
 
 #include <dirent.h>
 

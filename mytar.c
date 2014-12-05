@@ -45,7 +45,7 @@ void ecrireEntete(int archive, Entete *info, char *filename)
 		write(archive,&info->mode,sizeof(mode_t));		/* ecrire le mode */
 		write(archive,&info->m_time,sizeof(time_t)); 
 		write(archive,&info->a_time,sizeof(time_t));
-		write(archive,&info->checksum,sizeof(&info->checksum));
+		write(archive,&info->checksum,CHECKSUM_SIZE);
 
 		write(archive, filename, info->path_length);	/* ecrire le nom du fichier */
 	}
@@ -106,7 +106,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 /* archiver un fichier */
 void archiver(int archive, char *filename, Parametres *sp)
 {
-	/* TODO tester l'option '-v' + faire le md5, poser verrou sur l'archive : void archiver(int archive, char *filename) */
+	/* TODO poser verrou sur l'archive : void archiver(int archive, char *filename) */
 
 	int j;
 	off_t debut;
@@ -130,18 +130,12 @@ void archiver(int archive, char *filename, Parametres *sp)
 	else
 	{
 		/* On récupère les informations du fichier puis on les mets dans l'entete */
-		info.path_length = strlen(filename) +1;
+		info.path_length = strlen(filename);
 		info.file_length = s.st_size;
 		info.mode = s.st_mode;
 		info.m_time = s.st_mtime;
 		info.a_time = s.st_atime;
-		memset(info.checksum,0,sizeof(info.checksum));
-
-		if(sp->flag_v)
-		{
-			/* TODO traiter le flag_v -> faire la fonction suivante : int getMD5(char *filename, char *checksum)*/
-			/* Cette fonction renvoie 0 si tout est ok, -1 sinon*/
-		}
+		memset(info.checksum,0,CHECKSUM_SIZE);
 
 		/* On ecrit dans l'archive */
 		debut = lseek(archive,0, SEEK_CUR);	/* On garde la position du début */
@@ -160,9 +154,9 @@ void archiver(int archive, char *filename, Parametres *sp)
 				}
 				else
 				{
-					buf[lus] = '\0';
+					/*buf[lus] = '\0';*/
 					ecrireEntete(archive,&info,filename);
-					write(archive,buf, strlen(buf));
+					write(archive,buf,lus);
 				}
 			}
 			else
@@ -197,6 +191,16 @@ void archiver(int archive, char *filename, Parametres *sp)
 			}
 			else
 			{
+				if(sp->flag_v)
+				{
+					/* On récupère le md5 du fichier à archiver */
+					if( md5sum(filename, info.checksum) == NULL)
+					{
+						fprintf(stderr,"Echec lors de l'obtention du md5 du fichier %s \n", filename);
+						memset(info.checksum,0,CHECKSUM_SIZE);
+					}
+				}
+
 				ecrireEntete(archive,&info,filename);
 
 				for(j = 0 ; j <= info.file_length/BUFSIZE; j++)
@@ -275,6 +279,7 @@ void archiver_rep(int archive, char *rep, Parametres *sp)
 int extraire_archive(char *archive_file, Parametres *sp)
 {
 	/* TODO mettre verrou sur l'archive : int extraire_archive(char *archive_file) */
+	/* TODO Faire le '-v' en extraction -> Verifier l'integrité du fichier décompressé vis-à-vis de ce qui a été indiqué dans le md5 dans l'archive voir l-421 */
 	struct stat s,tmp;
 	Entete info;
 
@@ -324,10 +329,10 @@ int extraire_archive(char *archive_file, Parametres *sp)
 		read(archive,&info.mode,sizeof(mode_t));
 		read(archive,&info.m_time,sizeof(time_t));
 		read(archive,&info.a_time,sizeof(time_t));
-		read(archive,&info.checksum,sizeof(&info.checksum));
+		read(archive,&info.checksum,CHECKSUM_SIZE);
 		read(archive, filename, info.path_length);	/* lire le nom du fichier */
 
-		info.checksum[sizeof(&info.checksum)] = '\0';
+		/*info.checksum[sizeof(&info.checksum)] = '\0';*/
 		filename[info.path_length] = '\0';
 
 #ifdef DEBUG
@@ -346,7 +351,8 @@ int extraire_archive(char *archive_file, Parametres *sp)
 				continue;
 			}
 
-			if(sp->flag_k)	/* Si l'option -k existe */
+
+			if(sp->flag_k)	/* Si l'option -k est active */
 			{
 				if(lstat(filename,&tmp) != -1)
 				{
@@ -386,6 +392,7 @@ int extraire_archive(char *archive_file, Parametres *sp)
 			if(lstat(filename,&tmp) != -1)
 			{
 				lseek(archive, info.file_length,SEEK_CUR);
+				printf("ATTENTION : %s déjà existant\n",filename);
 				continue;	/* On passe au fichier suivant */
 			}
 		}
@@ -410,6 +417,10 @@ int extraire_archive(char *archive_file, Parametres *sp)
 		write(fdOutput,buf,lus);
 
 		close(fdOutput);
+
+		/* @note .1 : on récupère le checksum quand '-v' est renseigné && si le checksum est rempli de 0, ne pas faire la comparaison || comparer (utiliser strcmp())*/
+		/* @note .2 : Doit-on afficher quelque chose si la comparaison n'est pas bonne ?  A voir*/
+
 	}
 
 	close(archive);
@@ -439,7 +450,7 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 		return -1;
 	}
 
-	fdArchive = open(archive_file,O_WRONLY);
+	fdArchive = open(archive_file,O_WRONLY| O_APPEND);
 
 	if(fdArchive == -1)
 	{
@@ -448,15 +459,17 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 		return -1;
 	}
 
-	lseek(fdArchive,0,SEEK_END);
+	lseek(fdArchive,0,SEEK_CUR);	/* On se met à -1 car le dernier octet du fichier à pour pour hexadecimal  0x0A*/
 	
 	for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
 	{
 		archiver(fdArchive, argv[i], sp);
 	}
 
+	close(fdArchive);
 
 	return 0;
+
 }
 
 
@@ -464,9 +477,9 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
 
-	/* TODO La suppression d'un répertoire */
+	/* TODO La suppression d'un répertoire + test si un fichier archivé n'est pas valide */
 	/* suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename) */
-	/* @note tester sp->flag_d */
+	
 
 	int fdArchive, fdFichier;
 	int taille_archive;
@@ -479,6 +492,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 	struct stat s;
 	Entete info;
+
 
 	if(sp == NULL) return -1;
 
@@ -513,6 +527,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		return -1;
 	}
 
+
 	/* Tant qu'on n'est pas à la fin de l'archive */
 	while(lseek(fdArchive,0,SEEK_CUR) != taille_archive)
 	{
@@ -523,11 +538,11 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		read(fdArchive,&info.mode,sizeof(mode_t));
 		read(fdArchive,&info.m_time,sizeof(time_t));
 		read(fdArchive,&info.a_time,sizeof(time_t));
-		read(fdArchive,&info.checksum,sizeof(&info.checksum));
+		read(fdArchive,&info.checksum,CHECKSUM_SIZE);
 		read(fdArchive, filename, info.path_length);	/* lire le nom du fichier */
 
-		info.checksum[sizeof(&info.checksum)] = '\0';
 		filename[info.path_length] = '\0';
+
 
 		for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
 		{
@@ -538,7 +553,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 				/* Si le fichier est un lien symbolique */
 				if(S_ISLNK(info.mode) && !sp->flag_s)
 				{
-					/* L'option '-s' n'est pas actif -> le lien doit être ignoré dans la suppression */
+					/* L'option '-s' n'est pas actif -> le lien doit être ignoré dans la suppression (pas de suppression) */
 					ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
 					continue;
 				}
@@ -557,12 +572,13 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 	}
 
-	close(fdArchive);
 	close(fdFichier);
+	close(fdArchive);
+
 
 	if(stat(tmpFichier, &s) == -1)
 	{
-		unlink(tmpFichier);	/* On veut être sûr que le fichier sera bien supprimé */
+		unlink(tmpFichier);	/* On veut être sûr que le fichier sera bien supprimé, même s'il est possible qu'il soit déjà supprimé */
 		return -1;
 	}
 
@@ -596,7 +612,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	close(fdFichier);
 	close(fdArchive);
 
-	unlink(tmpFichier);
+	/*unlink(tmpFichier);*/
 
 	return 0;
 }
@@ -613,7 +629,7 @@ void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *f
 	write(fdFichier,&info->mode,sizeof(mode_t));
 	write(fdFichier,&info->m_time,sizeof(time_t));
 	write(fdFichier,&info->a_time,sizeof(time_t));
-	write(fdFichier,&info->checksum,sizeof(&info->checksum));
+	write(fdFichier,info->checksum,CHECKSUM_SIZE);	/* @bug sur cette ecriture qui corrompait le fichier (Reparé)*/
 	write(fdFichier,filename, info->path_length);
 
 
@@ -627,6 +643,90 @@ void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *f
 	write(fdFichier,buf,lus);
 
 }
+
+
+char * md5sum(const char *filename, char *checksum)
+{
+	pid_t p;
+	int status;
+	int lus = -1;
+
+	int tube[2];
+	char cmd[] = "md5sum";
+
+
+	if(filename == NULL || checksum == NULL)
+		return NULL;	/* Les paramètres ne sont pas valides,on ne va pas plus loin, on renvoie NULL */
+
+	if(pipe(tube) == -1)
+		return NULL;	/* Echec de la création du tube, on renvoie NULL */
+
+	p = fork();
+
+	if(p == 0)
+	{
+
+		close(tube[0]);		/* Fermeture du lecteur */
+		dup2(tube[1],STDOUT_FILENO);
+
+		execlp(cmd,cmd,filename, NULL);
+
+		close(tube[1]);
+		perror("Erreur lors de l'execution de la commande d'obtention du md5 ");
+
+		exit(-1);
+
+	}
+	else if(p > 0)
+	{
+
+		close(tube[1]);		/* Fermeture de l'ecrivain */
+
+		wait(&status);
+
+		if(WIFEXITED(status) && (WEXITSTATUS(status) == 0))
+		{
+			/* Tout s'est bien passé */
+			lus = read(tube[0],checksum,CHECKSUM_SIZE);
+		}
+		else
+		{
+			/* Il y a eu un problème */
+			fprintf(stderr, "md5sum - Echec lors de l'obtention du md5 \n");
+			return NULL;
+		}
+
+
+		if(lus < CHECKSUM_SIZE)
+		{
+			/* On lit moins que ce qui était attendu, ou bien la lecture à echoué, ce n'est pas normal à ce stade*/
+			fprintf(stderr,"ERREUR: problème lors de la récupération de la checksum \n");
+			return NULL;
+		}
+		else
+			return checksum;	/* Tout va bien, la fonction a fait son travai*/
+
+	}
+	else
+	{
+		fprintf(stderr,"ERREUR: checksum, execution de la commande impossible\n");
+		return NULL;	/* La création du fork a echoué, on ne peut rien faire, retourne NULL*/
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

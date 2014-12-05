@@ -19,17 +19,20 @@
 /* On met tous les champs à 0, c'est plus efficace que memset() */
 void init(Parametres *sp)
 {
-	sp->flag_h = 0;
-	sp->flag_c = 0;
-	sp->flag_a = 0;
-	sp->flag_d = 0;
-	sp->flag_l = 0;
-	sp->flag_x = 0;
-	sp->flag_k = 0;
-	sp->flag_s = 0;
-	sp->flag_C = 0;
-	sp->flag_v = 0;
-	sp->flag_f = 0;
+	if(sp != NULL)
+	{
+		sp->flag_h = 0;
+		sp->flag_c = 0;
+		sp->flag_a = 0;
+		sp->flag_d = 0;
+		sp->flag_l = 0;
+		sp->flag_x = 0;
+		sp->flag_k = 0;
+		sp->flag_s = 0;
+		sp->flag_C = 0;
+		sp->flag_v = 0;
+		sp->flag_f = 0;
+	}
 }
 
 
@@ -52,7 +55,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_h)
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -64,9 +67,9 @@ int check_param(int argc, char **argv, Parametres *sp)
 		
 		if(!strcmp(argv[i],"-c"))
 		{
-			if(sp->flag_c)
+			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -78,9 +81,9 @@ int check_param(int argc, char **argv, Parametres *sp)
 		}
 		if(!strcmp(argv[i],"-a"))
 		{
-			if(sp->flag_a)
+			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -92,9 +95,9 @@ int check_param(int argc, char **argv, Parametres *sp)
 
 		if(!strcmp(argv[i],"-d"))
 		{
-			if(sp->flag_d)
+			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -108,7 +111,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_l)
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -120,9 +123,9 @@ int check_param(int argc, char **argv, Parametres *sp)
 
 		if(!strcmp(argv[i],"-x"))
 		{
-			if(sp->flag_x)
+			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -136,7 +139,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_k)
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -150,7 +153,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_s)
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -164,7 +167,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_C)
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -191,7 +194,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_f)
 			{
-				memset(sp,0,sizeof(sp));
+				
 				return -1;
 			}
 			else
@@ -244,6 +247,7 @@ int getFirstPath(int argc, char **argv)
 		return -1;
 	}
 
+	/* Si on rencontre le flag -f */
 	if(!strcmp(argv[i],"-f")){
 		if(i>=argc - 2){
 			return -1;
@@ -252,6 +256,7 @@ int getFirstPath(int argc, char **argv)
 		return i+2;
 	}
 
+	/* Si on rencontre le flag -a ou -d */
 	if(!strcmp(argv[i],"-a") || !strcmp(argv[i],"-d")){
 		return i+1;
 		}

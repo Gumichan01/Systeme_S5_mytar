@@ -39,7 +39,9 @@
 #define GRP_W 0010	/* Droit d'écriture pour le groupe */
 #define OTH_W 0001	/* Droit d'écriture pour les autres */
 
-
+#define USR_RX 0500
+#define GRP_RX 0050
+#define OTH_RX 0005
 
 
 #define DEBUG			/* Constante pour le debogage */
@@ -52,7 +54,7 @@ typedef struct Entete{
 	mode_t mode;			/* type et droits */
 	time_t m_time;			/* date dernière modification du fichier */
 	time_t a_time;			/* date dernier accès au fichier */
-	char checksum[CHECKSUM_SIZE +1];	/* checksum du fichier */
+	char checksum[CHECKSUM_SIZE];	/* checksum du fichier */
 
 }Entete;
 
@@ -68,10 +70,12 @@ void archiver_rep(int archive, char *rep, Parametres *sp);		/* archiver un répe
 
 int extraire_archive(char *archive_file, Parametres *sp);		/* extraction de l'archive */
 
-int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);
-int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
+int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);		/*Ajout du fichier dans l'archive*/
+int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);	/*Suppression de*/
 
 void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
+
+char * md5sum(const char *filename, char *checksum);	/* Fonction qui calcul le md5 du ficheir pris en paramètre*/
 
 
 #endif /* MYTAR_INCLUDED_H */
