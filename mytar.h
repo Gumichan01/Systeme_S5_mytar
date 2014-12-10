@@ -4,7 +4,7 @@
 *
 *	@file mytar.h
 *
-*	@brief Fichier bibliothèque mytar.h, 
+*	@brief Fichier bibliothèque mytar.h,
 *		il contient toutes les bibliothèques utilisables
 *
 *	@author Luxon JEAN-PIERRE, Kahina RAHANI
@@ -15,6 +15,8 @@
 
 #ifndef MYTAR_INCLUDED_H
 #define MYTAR_INCLUDED_H
+
+#define _POSIX_C_SOURCE 200112L
 
 /* Bibliothèque standard */
 #include <stdio.h>
@@ -59,7 +61,7 @@ typedef struct Entete{
 }Entete;
 
 
-void usage(char *prog);	
+void usage(char *prog);
 
 void ecrireEntete(int archive, Entete *info, char *filename);
 									/* usage */
@@ -68,15 +70,21 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 void archiver(int archive, char *filename, Parametres *sp);		/* archiver un fichier */
 void archiver_rep(int archive, char *rep, Parametres *sp);		/* archiver un répertoire */
 
+/* TODO revoir l'extraction complete de l'archive*/
 int extraire_archive(char *archive_file, Parametres *sp);		/* extraction de l'archive */
+/* TODO faire l'extraction d'un certain bombre de fichiers de l'archive */
 
 int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);		/*Ajout du fichier dans l'archive*/
 int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);	/*Suppression de*/
+
+int liste_fichiers(char *archive_file, Parametres *sp);
 
 void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 
 char * md5sum(const char *filename, char *checksum);	/* Fonction qui calcul le md5 du ficheir pris en paramètre*/
 
+/* Supprimer les ".." || le '/' de début de chaine */
+/*char suprimerParasites(char * newF, char oldF);*/
 
 #endif /* MYTAR_INCLUDED_H */
 

@@ -17,7 +17,7 @@
 
 
 int main(int argc, char **argv)
-{	
+{
 	int nb_param;
 	char archive_file[MAX_FILE];
 	int param = 0; /* on met param à 0 mais ça peut changer */
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	/*Aucun parametre ? option -h actif ?*/
 	if(nb_param == 0 || sp.flag_h)
 	{	/* On n'a aucun arametre ou l'option -h est active */
-		usage(argv[0]);	
+		usage(argv[0]);
 	}
 
 
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_a actif -> ajout fichier dans archive \n");
 #endif
 
-		if(ajouter_fichier(archive_file,param,argc,argv,&sp) == -1)	
+		if(ajouter_fichier(archive_file,param,argc,argv,&sp) == -1)
 		{
 			fprintf(stderr,"%s : Problème lors de l'ajout des fichiers dans l'archive %s \n",argv[0], archive_file);
 			return EXIT_FAILURE;
@@ -122,9 +122,17 @@ int main(int argc, char **argv)
 		}
 
 	}
-	else
+	else if(sp.flag_l)
 	{
+#ifdef DEBUG
+		printf("DEBUG : sp.flag_l actif -> liste des fichiers dans archive \n");
+#endif
 
+		if(liste_fichiers(archive_file, &sp) == -1)
+		{
+			fprintf(stderr,"%s : Problème lors de l'affichage des fichiers situés dans l'archive %s \n",argv[0],archive_file);
+			return EXIT_FAILURE;
+		}
 	}
 
 	return EXIT_SUCCESS;

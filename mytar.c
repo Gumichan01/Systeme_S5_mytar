@@ -11,7 +11,7 @@
 *
 */
 
-/* @note 1 : en dehors de la vérification, de l'ajout et de la suppression de l'archive, toutes les fonctions seront 
+/* @note 1 : en dehors de la vérification, de l'ajout et de la suppression de l'archive, toutes les fonctions seront
    des reprises des fonctions du TP 6 de système */
 
 /* @note 2 : Toutes les fonctions doivent utiliser les verrous sur le fichier archive*/
@@ -39,11 +39,11 @@ void usage(char * prog)
 void ecrireEntete(int archive, Entete *info, char *filename)
 {
 	if(info != NULL)
-	{ 
+	{
 		write(archive,&info->path_length,sizeof(size_t));	/* ecrire la taille */
 		write(archive,&info->file_length,sizeof(off_t));		/* longueur du contenu */
 		write(archive,&info->mode,sizeof(mode_t));		/* ecrire le mode */
-		write(archive,&info->m_time,sizeof(time_t)); 
+		write(archive,&info->m_time,sizeof(time_t));
 		write(archive,&info->a_time,sizeof(time_t));
 		write(archive,&info->checksum,CHECKSUM_SIZE);
 
@@ -182,6 +182,8 @@ void archiver(int archive, char *filename, Parametres *sp)
 		}
 		else if(S_ISREG(info.mode) > 0)	/* Le cas d'un fichier régulier , on lit son contenu */
 		{
+		    /* TODO supprimer les ".." et le '/' */
+
 			fdInput = open(filename,O_RDONLY);
 
 			if(fdInput == -1)
@@ -224,7 +226,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 		{
 			fprintf(stderr,"Format fichier non valide! \n");
 			lseek(archive, debut, SEEK_SET);
-			
+
 		}
 	}
 
@@ -278,7 +280,7 @@ void archiver_rep(int archive, char *rep, Parametres *sp)
 /* extraction de l'archive */
 int extraire_archive(char *archive_file, Parametres *sp)
 {
-	/* TODO mettre verrou sur l'archive : int extraire_archive(char *archive_file) */
+	/* TODO mettre verrou sur l'archive + création arborescence relative à un fichier dans un dossier : int extraire_archive(char *archive_file) */
 	/* TODO Faire le '-v' en extraction -> Verifier l'integrité du fichier décompressé vis-à-vis de ce qui a été indiqué dans le md5 dans l'archive voir l-421 */
 	struct stat s,tmp;
 	Entete info;
@@ -360,7 +362,7 @@ int extraire_archive(char *archive_file, Parametres *sp)
 					continue;
 				}
 			}
-		
+
 			if(sp->flag_s)	/* Ah, donc on le prend bien en compte */
 				symlink(buf,filename);	/* On crée le lien filename sur buf */
 
@@ -396,6 +398,9 @@ int extraire_archive(char *archive_file, Parametres *sp)
 				continue;	/* On passe au fichier suivant */
 			}
 		}
+
+        /* TODO si le fichier est dans une arborescence, crée l'arborescence
+            exemple :  a/b/c/toto -> faire mkdir -p a/b/c (cela n'écrase l'arborescence de a si a existe déjà ;-))*/
 
 		/* On ouvre le fichier à desarchiver en écriture*/
 		fdOutput = open(filename, O_WRONLY | O_TRUNC | O_CREAT, info.mode);
@@ -460,7 +465,7 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 	}
 
 	lseek(fdArchive,0,SEEK_CUR);	/* On se met à -1 car le dernier octet du fichier à pour pour hexadecimal  0x0A*/
-	
+
 	for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
 	{
 		archiver(fdArchive, argv[i], sp);
@@ -479,7 +484,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 	/* TODO La suppression d'un répertoire + test si un fichier archivé n'est pas valide */
 	/* suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename) */
-	
+
 
 	int fdArchive, fdFichier;
 	int taille_archive;
@@ -546,10 +551,10 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 		for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
 		{
-			
+
 			if(strcmp(argv[i],filename)==0)
 			{
-				
+
 				/* Si le fichier est un lien symbolique */
 				if(S_ISLNK(info.mode) && !sp->flag_s)
 				{
@@ -559,16 +564,16 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 				}
 
 				lseek(fdArchive,info.file_length,SEEK_CUR);
-				
+
 			}
 			else
 			{
 				ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
 			}
-		
+
 
 		}
-		
+
 
 	}
 
@@ -585,7 +590,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	taille_archive = s.st_size;
 
 	fdArchive = open(archive_file, O_WRONLY|O_TRUNC);
-	
+
 	if(fdArchive == -1)
 	{
 		return -1;
@@ -616,6 +621,59 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 	return 0;
 }
+
+
+/* option "-l" */
+int liste_fichiers(char *archive_file, Parametres *sp){
+
+    /* TODO liste_fichiers(char *archive_file, Parametres *sp) */
+
+    char filename[BUFSIZE];
+    char infoFichier[BUFSIZE*2];
+    char tmp_char[10];
+    /*char tmp_arch[] = "/tmp/.arch_kl";*/ /* Créer ce repertoire et y mettre une copie de l'archive*/
+    /* @note : Il faudra penser à le supprimer quand on a tout fait*/
+
+    Entete info;
+    struct stat s;
+
+	int fdArchive;
+    int exit_val = 0;
+    int taille_archive;
+
+    if(stat(archive_file,&s) == -1)
+    {
+        perror("ERREUR ");
+        return -1;
+    }
+
+    taille_archive = s.st_size;
+
+	if(sp == NULL)	return -1;
+
+	if(!sp->flag_l)
+	{
+		fprintf(stderr,"ERREUR : ajout dans l'archive non permise, option '-l' non detectée ");
+		return -1;
+	}
+
+	fdArchive = open(archive_file,O_RDONLY);
+
+	if(fdArchive == -1)
+	{
+
+		warn("erreur à l'ouverture du fichier archivé %s ",archive_file);
+		return -1;
+	}
+
+    /* TODO mettre une copie de l'archive dans un repertoire tampon puis tout extraire dans ce même repertoire
+        et faire un ls */
+
+	close(fdArchive);
+
+	return exit_val;
+}
+
 
 /* Ecrire  le contenu d'un fichier dans un autre (utilisé dans supprimer_fichiers)*/
 void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize)
