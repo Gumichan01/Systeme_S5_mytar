@@ -84,6 +84,8 @@ void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *f
 
 char * md5sum(const char *filename, char *checksum);	/* Fonction qui calcul le md5 du ficheir pris en paramètre*/
 
+int checksumRenseigne(char * checksum);                 /* Verifie si le md5 d'un fichier est renseigné*/
+
 /* Supprimer les ".." || le '/' de début de chaine */
 char *enleverSlashEtPoints(char *oldchaine, char *newchaine);
 

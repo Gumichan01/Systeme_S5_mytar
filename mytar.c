@@ -314,12 +314,14 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 	char buf[BUFSIZE];
 	char filename[BUFSIZE];
 	char arbo[MAX_PATH];    /*Stocke l'arborescence dans lequel appartient le fichier cible*/
+	char checksum[CHECKSUM_SIZE];
 	int lus;
 
     /*  Stocke les arborescence des fichiers à extraire
         utilisé notamment lorsqu'on veut extraire un repertoir et tous les fichier*/
 	char *arborescences[MAX_PATH];
-	int a = 0, k;
+	int a = 0;
+	int err = 0;
 
 
 #ifdef DEBUG
@@ -365,7 +367,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 		read(archive,&info.checksum,CHECKSUM_SIZE);
 		read(archive,filename, info.path_length);	/* lire le nom du fichier */
 
-		/*info.checksum[sizeof(&info.checksum)] = '\0';*/
+		info.checksum[CHECKSUM_SIZE] = '\0';
 		filename[info.path_length] = '\0';
 
         /* Y a-t-il des fichiers spécifiques à extraire ? */
@@ -536,6 +538,31 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 
 		/* @note .1 : on récupère le checksum quand '-v' est renseigné && si le checksum est rempli de 0, ne pas faire la comparaison || comparer (utiliser strcmp())*/
 		/* @note .2 : Doit-on afficher quelque chose si la comparaison n'est pas bonne ?  A voir*/
+
+        if(sp->flag_v)
+        {
+            err = checksumRenseigne(info.checksum);
+
+            if(err == 1)
+            {
+                if(md5sum(filename,checksum) == NULL)
+                {
+                    fprintf(stderr,"%s : Probleme lors de l'obtention du md5 de %s",argv[0],filename);
+                    continue;
+                }
+
+                if(!strncmp(checksum,info.checksum,CHECKSUM_SIZE))
+                {
+                    printf("%s: INFO : Le fichier %s est intègre \n",argv[0],filename);
+                }
+                else
+                    printf("%s: ATTENTION : Le fichier %s n'est pas intègre \n",argv[0],filename);
+            }
+            else if(err == 0)
+               printf("%s: INFO : Le fchecksum de %s n'est pas renseigné \n",argv[0],filename);
+            else
+                fprintf(stderr,"%s: %s : Probleme interne à checksumRenseigne() ou paramètres invalides\n",argv[0],filename);
+        }
 
 	}
 
@@ -870,6 +897,7 @@ char * md5sum(const char *filename, char *checksum)
 		{
 			/* On lit moins que ce qui était attendu, ou bien la lecture à echoué, ce n'est pas normal à ce stade*/
 			fprintf(stderr,"ERREUR: problème lors de la récupération de la checksum \n");
+			memset(checksum,0,CHECKSUM_SIZE);
 			return NULL;
 		}
 		else
@@ -884,7 +912,33 @@ char * md5sum(const char *filename, char *checksum)
 
 }
 
+/*
+    Vérifies si le md5 d'un fichier est renseigné
+    Si oui , la fonction retourne 1, 0 sinon.
+    Si le checksum est NULL ou a une longueur
+    strictement inférieur à la gueur d'un checksum
+    renvoie -1.
+*/
+int checksumRenseigne(char * checksum)
+{
+    int i = 0;
 
+    if(checksum == NULL || strlen(checksum) != CHECKSUM_SIZE)
+        return -1;
+
+    /* Tant qu'on est pas à la fin et qu'on a rien de défini */
+    while(i < CHECKSUM_SIZE && checksum[i] == 0)
+    {
+        i++;
+    }
+
+    /*  Si on est pas arrivé au bout, on considère que le checksum est définit*/
+    if(i != CHECKSUM_SIZE)
+        return 1;
+
+    return 0;   /* Si on arrive là, alors cela signifie que le checksum n'est pas défini*/
+
+}
 
 /*  Enlève le '/' de début de chaine si le chemin est absolu
     ainsi que les "./" et "../" */
@@ -895,7 +949,6 @@ char *enleverSlashEtPoints(char *oldchaine, char *newchaine){
     int dejaCopie = 0;
     int debut = 0;          /* Debut d'une sous-chaine*/
     int apresDernierPoints = 0; /*La position après les "../" */
-    char subchaine[MAX_PATH];
 
     if(oldchaine == NULL || newchaine == NULL)
         return NULL;
@@ -1028,14 +1081,12 @@ int mkdirP(char *arborescence)
 }
 
 
-
 /*  Renvoie le 'pwd' du fichier mis en paramètre et
     stocke le resultat dans la 2ème chaine
     Si au moins une des deux chaines est NULL,
     alors le comportement est indéfini */
 char *getArborescence(char *filename, char *newA)
 {
-    char arbo[MAX_PATH];
     int i;
 
     /*if(filename, newA)
