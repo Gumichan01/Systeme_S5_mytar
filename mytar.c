@@ -289,7 +289,7 @@ void archiver_rep(int archive, char *rep, Parametres *sp)
 
 
 /* extraction de l'archive */
-int extraire_archive(char *archive_file, Parametres *sp)
+int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
 	/* TODO mettre verrou sur l'archive + création arborescence relative à un fichier dans un dossier : int extraire_archive(char *archive_file) */
 	/* TODO Faire le '-v' en extraction -> Verifier l'integrité du fichier décompressé vis-à-vis de ce qui a été indiqué dans le md5 dans l'archive voir l-421 */
@@ -298,18 +298,25 @@ int extraire_archive(char *archive_file, Parametres *sp)
 
 	int fdOutput; 	/* fd en ecriture sur le fichier désarchivé */
 	int archive;	/* fd en lecture sur l'archive */
-	int j, taille_archive;
+	int i,j, taille_archive;
+	int extraire = 0;
 
 	char buf[BUFSIZE];
 	char filename[BUFSIZE];
 	char arbo[MAX_PATH];
 	int lus;
 
+    /*  Stocke les arborescence des fichiers à extraire
+        utilisé notamment lorsqu'on veut extraire un repertoir et tous les fichier*/
+	/*char *arborescences[MAX_PATH];
+	int a = 0, k;*/
+
+
 #ifdef DEBUG
 	printf("DEBUG : Extraction de %s \n", archive_file);
 #endif
 
-	if(sp == NULL) return -1;
+	if(argv == NULL || sp == NULL) return -1;
 
 	if(!sp->flag_x)
 	{
@@ -338,6 +345,8 @@ int extraire_archive(char *archive_file, Parametres *sp)
 	{
 		/* On lit l'entete */
 
+        extraire = 0;
+
 		read(archive,&info.path_length,sizeof(info.path_length));
 		read(archive,&info.file_length,sizeof(off_t));
 		read(archive,&info.mode,sizeof(mode_t));
@@ -348,6 +357,42 @@ int extraire_archive(char *archive_file, Parametres *sp)
 
 		/*info.checksum[sizeof(&info.checksum)] = '\0';*/
 		filename[info.path_length] = '\0';
+
+#ifdef DEBUG
+	printf("DEBUG : lecture de : %s \n",filename);
+#endif
+
+        /* Y a-t-il des fichiers spécifiques à extraire ? */
+        if(firstPath != -1)
+        {
+            // On ne veux extraire que les fichier en paramètre
+            for(i = firstPath; i < argc; i++)
+            {
+                if(!strcmp(filename,argv[i]))
+                {
+                    extraire = 1;
+                    break;
+                }
+                /*else
+                {
+                    for(k = 0; k < a; k++)
+                    {
+
+                    }
+                }*/
+            }
+
+            /* Le fichier que je m'apprête à extraire est-il dans les fichiers désisé*/
+            if(extraire == 0)
+            {   /* Ce n'est pas un fichier que j'ai demandé, on passe à la suite */
+
+                if(!S_ISDIR(info.mode))
+                    lseek(archive,info.file_length,SEEK_CUR);
+
+                continue;
+            }
+        }
+
 
 #ifdef DEBUG
 	printf("DEBUG : Extraction de %s hors de %s \n",filename, archive_file);

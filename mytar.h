@@ -72,7 +72,7 @@ void archiver(int archive, char *filename, Parametres *sp);		/* archiver un fich
 void archiver_rep(int archive, char *rep, Parametres *sp);		/* archiver un répertoire */
 
 /* TODO revoir l'extraction complete de l'archive*/
-int extraire_archive(char *archive_file, Parametres *sp);		/* extraction de l'archive */
+int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);		/* extraction de l'archive */
 /* TODO faire l'extraction d'un certain bombre de fichiers de l'archive */
 
 int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);		/*Ajout du fichier dans l'archive*/

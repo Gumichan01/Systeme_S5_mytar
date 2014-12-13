@@ -55,7 +55,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_h)
 			{
-				
+
 				return -1;
 			}
 			else
@@ -64,12 +64,12 @@ int check_param(int argc, char **argv, Parametres *sp)
 				compt += 1;
 			}
 		}
-		
+
 		if(!strcmp(argv[i],"-c"))
 		{
 			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				
+
 				return -1;
 			}
 			else
@@ -83,7 +83,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				
+
 				return -1;
 			}
 			else
@@ -97,7 +97,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				
+
 				return -1;
 			}
 			else
@@ -111,7 +111,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_l)
 			{
-				
+
 				return -1;
 			}
 			else
@@ -125,7 +125,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_a || sp->flag_c || sp->flag_d || sp->flag_x )
 			{
-				
+
 				return -1;
 			}
 			else
@@ -139,7 +139,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_k)
 			{
-				
+
 				return -1;
 			}
 			else
@@ -153,7 +153,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_s)
 			{
-				
+
 				return -1;
 			}
 			else
@@ -167,7 +167,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_C)
 			{
-				
+
 				return -1;
 			}
 			else
@@ -194,7 +194,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 		{
 			if(sp->flag_f)
 			{
-				
+
 				return -1;
 			}
 			else
@@ -249,7 +249,7 @@ int getFirstPath(int argc, char **argv)
 
 	/* Si on rencontre le flag -f */
 	if(!strcmp(argv[i],"-f")){
-		if(i>=argc - 2){
+		if(i >= argc - 2){
 			return -1;
 		}
 

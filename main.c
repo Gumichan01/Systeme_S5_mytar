@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_x actif -> extraction archive \n");
 #endif
 
-		if(extraire_archive(archive_file,&sp) == -1)
+		if(extraire_archive(archive_file,param,argc,argv,&sp) == -1)
 		{
 			fprintf(stderr,"%s : impossible d'extraire l'archive \n",argv[0]);
 			return EXIT_FAILURE;
