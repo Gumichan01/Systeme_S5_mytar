@@ -91,6 +91,8 @@ int mkdirP(char *arborescence);
 
 char *getArborescence(char *filename, char *newA);
 
+int dansArborescence(char *arbo, char *arborescences[], int lgr);
+
 #endif /* MYTAR_INCLUDED_H */
 
 

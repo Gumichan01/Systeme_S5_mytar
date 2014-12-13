@@ -187,13 +187,23 @@ void archiver(int archive, char *filename, Parametres *sp)
 			}
 			else
 			{	/* On archive tous les fichiers qui sont dans ce repertoire */
+			    info.file_length = 0;
+
+                /*  Dans le cas où on a un dossier, on s'assure d'avoir le '/'
+                    quoiqu'il arrive. C'est une politique qu'on a choisit pour
+                    notre programme */
+			    if(newF[info.path_length -1] != '/' && info.path_length < MAX_PATH)
+			    {
+                    strcat(newF, "/");
+                    info.path_length++;
+			    }
+
 				ecrireEntete(archive,&info,newF);
 				archiver_rep(archive,filename,sp);
 			}
 		}
 		else if(S_ISREG(info.mode) > 0)	/* Le cas d'un fichier régulier , on lit son contenu */
 		{
-		    /* TODO supprimer les ".." et le '/' */
 
 			fdInput = open(filename,O_RDONLY);
 
@@ -303,13 +313,13 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 
 	char buf[BUFSIZE];
 	char filename[BUFSIZE];
-	char arbo[MAX_PATH];
+	char arbo[MAX_PATH];    /*Stocke l'arborescence dans lequel appartient le fichier cible*/
 	int lus;
 
     /*  Stocke les arborescence des fichiers à extraire
         utilisé notamment lorsqu'on veut extraire un repertoir et tous les fichier*/
-	/*char *arborescences[MAX_PATH];
-	int a = 0, k;*/
+	char *arborescences[MAX_PATH];
+	int a = 0, k;
 
 
 #ifdef DEBUG
@@ -353,14 +363,10 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 		read(archive,&info.m_time,sizeof(time_t));
 		read(archive,&info.a_time,sizeof(time_t));
 		read(archive,&info.checksum,CHECKSUM_SIZE);
-		read(archive, filename, info.path_length);	/* lire le nom du fichier */
+		read(archive,filename, info.path_length);	/* lire le nom du fichier */
 
 		/*info.checksum[sizeof(&info.checksum)] = '\0';*/
 		filename[info.path_length] = '\0';
-
-#ifdef DEBUG
-	printf("DEBUG : lecture de : %s \n",filename);
-#endif
 
         /* Y a-t-il des fichiers spécifiques à extraire ? */
         if(firstPath != -1)
@@ -371,15 +377,35 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
                 if(!strcmp(filename,argv[i]))
                 {
                     extraire = 1;
+
+                    /*  Coment savoir si ce qu'a mis l'utilisateur final
+                        est un répertoire ou un fichier ?
+                        Pour cela, on va encore définir une politique pars defaut
+                        sur le type de fichier q'uon a en paramètre positionnel.
+                        On part du principe que si l'utilisateur met un '/' final
+                        on a un répertoire.
+                        Dans le cas contraire, on a un fichier normal */
+                    if(argv[i][strlen(argv[i])-1] == '/')
+                    {
+                        /*On considère le fichier comme un répertoire*/
+                        if(S_ISDIR(info.mode) && !dansArborescence(argv[i], arborescences,a))
+                        {
+                            arborescences[a++] = argv[i];
+                        }
+                    }
+
                     break;
                 }
-                /*else
+                else
                 {
-                    for(k = 0; k < a; k++)
+                    /* Si le fichier appartient à une arborescence à extraire */
+                    if(dansArborescence(getArborescence(argv[i], arbo), arborescences,a))
                     {
-
+                        /* Il appartient à l'arborescence à extraire, on l'extrait donc */
+                        extraire = 1;
+                        break;
                     }
-                }*/
+                }
             }
 
             /* Le fichier que je m'apprête à extraire est-il dans les fichiers désisé*/
@@ -475,10 +501,6 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 				continue;	/* On passe au fichier suivant */
 			}
 		}
-
-        /* TODO si le fichier est dans une arborescence, crée l'arborescence
-            exemple :  a/b/c/toto -> faire mkdir -p a/b/c
-            (cela n'écrase pas l'arborescence de a si a existe déjà ;-)) */
 
         /* On test si le fichier est dans une arborescence */
         if(getArborescence(filename,arbo) != NULL)
@@ -1021,14 +1043,15 @@ char *getArborescence(char *filename, char *newA)
 
     memset(newA,0,MAX_PATH);
 
-    i = strlen(filename);
+    i = strlen(filename) - 1;
 
-    while(i > 0 && filename[i] != '/')
+    while(i >= 0 && filename[i] != '/')
     {
         i--;
     }
 
-    if(i <= 0)
+
+    if(i == -1)
         return NULL;
     else
     {
@@ -1038,8 +1061,27 @@ char *getArborescence(char *filename, char *newA)
     return newA;
 }
 
+/*  Test si une arborescence est déjà dans un tableau
+    d'arborescence. retourne 1 si oui , 0 sinon */
+int dansArborescence(char *arbo, char *arborescences[], int lgr)
+{
+    int k = 0;
 
+    if(arbo == NULL || arborescences == NULL )
+    {
+        return 0;
+    }
 
+    while(k < lgr)
+    {
+        if(!strcmp(arborescences[k], arbo))
+            return 1;   /* On l'a trouvé*/
+
+        k++;
+    }
+
+    return 0;
+}
 
 
 
