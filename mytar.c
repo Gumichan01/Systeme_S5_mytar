@@ -117,6 +117,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 	Entete info;
 
 	char buf[BUFSIZE];
+	char newF[MAX_PATH];
 	int lus;
 
 #ifdef DEBUG
@@ -129,8 +130,18 @@ void archiver(int archive, char *filename, Parametres *sp)
 	}
 	else
 	{
+        if(enleverSlashEtPoints(filename,newF) == NULL)
+        {
+            fprintf(stderr,"ERREUR : problème interne lié au fichier suivant : %s \n", filename);
+            return;
+        }
+
+#ifdef DEBUG
+	printf("DEBUG : Après avoir enlever les caractères parasites : %s \n",newF);
+#endif
+
 		/* On récupère les informations du fichier puis on les mets dans l'entete */
-		info.path_length = strlen(filename);
+		info.path_length = strlen(newF);
 		info.file_length = s.st_size;
 		info.mode = s.st_mode;
 		info.m_time = s.st_mtime;
@@ -155,7 +166,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 				else
 				{
 					/*buf[lus] = '\0';*/
-					ecrireEntete(archive,&info,filename);
+					ecrireEntete(archive,&info,newF);
 					write(archive,buf,lus);
 				}
 			}
@@ -169,14 +180,14 @@ void archiver(int archive, char *filename, Parametres *sp)
 		else if(S_ISDIR(info.mode) > 0) /* Le cas si c'est un répertoire */
 		{
 			/* A-t-on les droits de parcours (pour l'accès aux fichiers) et de modification (pour l'extraction) */
-			if((info.mode & 0500) != 0500 || (info.mode & 0050) != 0050 || (info.mode & 0005) != 0005)
+			if((info.mode & USR_RX) != USR_RX || (info.mode & GRP_RX) != GRP_RX || (info.mode & OTH_RX) != OTH_RX)
 			{
 				fprintf(stderr,"ATTENTION : %s - Droit non valides sur le fichier \n",filename);
 				lseek(archive, debut, SEEK_SET);
 			}
 			else
 			{	/* On archive tous les fichiers qui sont dans ce repertoire */
-				ecrireEntete(archive,&info,filename);
+				ecrireEntete(archive,&info,newF);
 				archiver_rep(archive,filename,sp);
 			}
 		}
@@ -203,7 +214,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 					}
 				}
 
-				ecrireEntete(archive,&info,filename);
+				ecrireEntete(archive,&info,newF);
 
 				for(j = 0 ; j <= info.file_length/BUFSIZE; j++)
 				{
@@ -291,6 +302,7 @@ int extraire_archive(char *archive_file, Parametres *sp)
 
 	char buf[BUFSIZE];
 	char filename[BUFSIZE];
+	char arbo[MAX_PATH];
 	int lus;
 
 #ifdef DEBUG
@@ -345,7 +357,10 @@ int extraire_archive(char *archive_file, Parametres *sp)
 		if(S_ISLNK(info.mode) > 0)
 		{
 			lus = read(archive,buf,info.file_length);	/* on recupére le nom du fichier pointé par le lien */
-			buf[info.file_length] = '\0';
+
+			/* Cela a-t-il marché*/
+			if(lus > 0)
+                buf[info.file_length] = '\0';
 
 			if(lus == -1)
 			{
@@ -363,9 +378,23 @@ int extraire_archive(char *archive_file, Parametres *sp)
 				}
 			}
 
-			if(sp->flag_s)	/* Ah, donc on le prend bien en compte */
-				symlink(buf,filename);	/* On crée le lien filename sur buf */
+			if(sp->flag_s)
+			{
+			    /* Ah, donc on le prend bien en compte */
 
+                /* On test si le fichier est dans une arborescence */
+                if(getArborescence(filename,arbo) != NULL)
+                {
+                    if(mkdirP(arbo) == -1)
+                    {
+                        fprintf(stderr,"Erreur lors de la création de l'arborescence %s\n",arbo);
+                        lseek(archive,info.file_length,SEEK_CUR);
+                        continue;
+                    }
+                }
+
+				symlink(buf,filename);	/* On crée le lien filename sur buf */
+			}
 			continue;
 		}
 
@@ -380,10 +409,13 @@ int extraire_archive(char *archive_file, Parametres *sp)
 				}
 			}
 
-			if(mkdir(filename, info.mode) == -1)
+            // On crée l'arborescence
+			if(mkdirP(filename) == -1)
 			{
-				warn("Erreur à la création du repertoire %s ", filename);
+				warn("Erreur à la création de l'arborescence %s ", filename);
 			}
+
+            chmod(filename, info.mode);
 
 			continue;
 		}
@@ -400,9 +432,21 @@ int extraire_archive(char *archive_file, Parametres *sp)
 		}
 
         /* TODO si le fichier est dans une arborescence, crée l'arborescence
-            exemple :  a/b/c/toto -> faire mkdir -p a/b/c (cela n'écrase l'arborescence de a si a existe déjà ;-))*/
+            exemple :  a/b/c/toto -> faire mkdir -p a/b/c
+            (cela n'écrase pas l'arborescence de a si a existe déjà ;-)) */
 
-		/* On ouvre le fichier à desarchiver en écriture*/
+        /* On test si le fichier est dans une arborescence */
+        if(getArborescence(filename,arbo) != NULL)
+        {
+            if(mkdirP(arbo) == -1)
+            {
+                fprintf(stderr,"Erreur lors de la création de l'arborescence %s\n",arbo);
+                lseek(archive,info.file_length,SEEK_CUR);
+                continue;
+            }
+        }
+
+		/* On ouvre le fichier à desarchiver en écriture */
 		fdOutput = open(filename, O_WRONLY | O_TRUNC | O_CREAT, info.mode);
 
 		if(fdOutput == -1)
@@ -702,7 +746,7 @@ void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *f
 
 }
 
-
+/* Calcule le md5 du fichier */
 char * md5sum(const char *filename, char *checksum)
 {
 	pid_t p;
@@ -714,7 +758,7 @@ char * md5sum(const char *filename, char *checksum)
 
 
 	if(filename == NULL || checksum == NULL)
-		return NULL;	/* Les paramètres ne sont pas valides,on ne va pas plus loin, on renvoie NULL */
+		return NULL;	/* Les paramètres ne sont pas valides, on ne va pas plus loin, on renvoie NULL */
 
 	if(pipe(tube) == -1)
 		return NULL;	/* Echec de la création du tube, on renvoie NULL */
@@ -775,13 +819,179 @@ char * md5sum(const char *filename, char *checksum)
 
 
 
+/*  Enlève le '/' de début de chaine si le chemin est absolu
+    ainsi que les "./" et "../" */
+char *enleverSlashEtPoints(char *oldchaine, char *newchaine){
+
+    int i = 0,j = 0;
+    int cheminAbs = 1;
+    int dejaCopie = 0;
+    int debut = 0;          /* Debut d'une sous-chaine*/
+    int apresDernierPoints = 0; /*La position après les "../" */
+    char subchaine[MAX_PATH];
+
+    if(oldchaine == NULL || newchaine == NULL)
+        return NULL;
+
+
+    memset(newchaine,0,MAX_PATH); /* On met tous les éléments à 0*/
+
+    /* Le '/' est-il présent au début de la chaine ? */
+    if(oldchaine[0] == '/')
+        j += 1;
+
+
+    for(i = j; i < strlen(oldchaine); i++)
+    {
+        if(oldchaine[i] != '.')
+            continue;
+        else
+        {
+
+            /* A-t-on "./" ? */
+            if(oldchaine[i+1] == '/')
+            {
+                cheminAbs = 0;
+
+                if(!dejaCopie)
+                {   /* On n'a pas encore copié, on la fait donc */
+                    strncpy(newchaine, oldchaine + j, i-j);
+                    dejaCopie = 1;  /* On a copié */
+
+                }
+                else
+                {   /* On a déjà copié, on concatène la suite avec ce qu'on avait déjà*/
+                    strncat(newchaine, oldchaine + debut, i - debut);
+                }
+
+                debut = i + 2;  /* on mémorise le début de la suite de la chaine */
+                i += 1;         /* On saute les caracères déjà testés*/
+
+            }
+            else if(oldchaine[i+1] == '.' && oldchaine[i+2] == '/')
+            {
+                cheminAbs = 0;
+
+                /* On a "../" */
+                debut = i + 3;  /* on mémorise le début de la suite de la chaine */
+                apresDernierPoints = debut;
+                i += 2;         /* On saute les caracères déjà testés*/
+
+            }
+            else
+                continue;
+
+        }
+    }
+
+        if(cheminAbs)
+        {   /*  On a un chemin absolu, on copie toute la chaine tel quelle
+                en prenant soin de ne pas avoir le '/' */
+            strncpy(newchaine,(oldchaine + j),strlen(oldchaine) -j);
+            newchaine[strlen(oldchaine) -j] = '\0';    /* pour être su d'avoir le '\0'*/
+        }
+        else
+        {
+            /* On a un chemin relatif*/
+            if(apresDernierPoints > 0)
+            {   /* Il y avait la chaine "../" */
+                strncpy(newchaine,oldchaine + apresDernierPoints,strlen(oldchaine) - apresDernierPoints);
+                newchaine[strlen(oldchaine) - apresDernierPoints] = '\0';
+            }
+            else
+            {   /* Il n'y avait pas la chaine "./" */
+                strncat(newchaine,oldchaine + debut,strlen(oldchaine) - debut);
+            }
+
+        }
+
+
+	return newchaine;
+}
 
 
 
+int mkdirP(char *arborescence)
+{
+	pid_t p;
+	int status;
+
+	char cmd[] = "mkdir";
+
+
+	if(arborescence == NULL)
+		return -1;	/* Les paramètres ne sont pas valides, on ne va pas plus loin, on renvoie NULL */
+
+	p = fork();
+
+	if(p == 0)
+	{
+
+		execlp(cmd,cmd,"-p",arborescence, NULL);
+
+		perror("Erreur lors de l'execution de la commande d'obtention du md5 ");
+
+		exit(-1);
+
+	}
+	else if(p > 0)
+	{
+
+		wait(&status);
+
+		if(WIFEXITED(status) && (WEXITSTATUS(status) == 0))
+		{
+			/* Tout s'est bien passé */
+            return 0;
+		}
+		else
+		{
+			/* Il y a eu un problème */
+			fprintf(stderr, "mkdir -p - Echec lors de la création de l'arborescence \n");
+			return -1;
+		}
+
+	}
+	else
+	{
+		fprintf(stderr,"ERREUR: cmkdir, execution de la commande impossible\n");
+		return -1;	/* La création du fork a echoué, on ne peut rien faire, retourne NULL*/
+	}
+
+}
 
 
 
+/*  Renvoie le 'pwd' du fichier mis en paramètre et
+    stocke le resultat dans la 2ème chaine
+    Si au moins une des deux chaines est NULL,
+    alors le comportement est indéfini */
+char *getArborescence(char *filename, char *newA)
+{
+    char arbo[MAX_PATH];
+    int i;
 
+    /*if(filename, newA)
+        return NULL;*/
+
+    memset(newA,0,MAX_PATH);
+
+    i = strlen(filename);
+
+    while(i > 0 && filename[i] != '/')
+    {
+        i--;
+    }
+
+    if(i <= 0)
+        return NULL;
+    else
+    {
+        strncpy(newA,filename,i+1);
+    }
+
+    return newA;
+}
 
 
 

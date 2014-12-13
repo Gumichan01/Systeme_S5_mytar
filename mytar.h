@@ -34,16 +34,17 @@
 #endif
 
 #ifndef BUFSIZE
-#define BUFSIZE 1024		/* Constante definissant la taille du checksum */
+#define BUFSIZE 1024		/* Constante definissant la taille du buffer */
 #endif
 
-#define USR_W 0100	/* Droit d'écriture pour le propriétaire */
-#define GRP_W 0010	/* Droit d'écriture pour le groupe */
-#define OTH_W 0001	/* Droit d'écriture pour les autres */
+#ifndef MAX_PATH
+#define MAX_PATH 256		/* Constante definissant la longueur max du nom du fichier */
+#endif
 
-#define USR_RX 0500
-#define GRP_RX 0050
-#define OTH_RX 0005
+
+#define USR_RX 0500         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) propriétaire */
+#define GRP_RX 0050         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) groupe */
+#define OTH_RX 0005         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) autres */
 
 
 #define DEBUG			/* Constante pour le debogage */
@@ -84,7 +85,11 @@ void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *f
 char * md5sum(const char *filename, char *checksum);	/* Fonction qui calcul le md5 du ficheir pris en paramètre*/
 
 /* Supprimer les ".." || le '/' de début de chaine */
-/*char suprimerParasites(char * newF, char oldF);*/
+char *enleverSlashEtPoints(char *oldchaine, char *newchaine);
+
+int mkdirP(char *arborescence);
+
+char *getArborescence(char *filename, char *newA);
 
 #endif /* MYTAR_INCLUDED_H */
 
