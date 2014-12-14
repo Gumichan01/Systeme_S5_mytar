@@ -190,7 +190,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 			if((info.mode & USR_RX) != USR_RX || (info.mode & GRP_RX) != GRP_RX || (info.mode & OTH_RX) != OTH_RX)
 			{
 				fprintf(stderr,"ATTENTION : %s - Droit non valides sur le fichier \n",filename);
-				lseek(archive, debut, SEEK_SET); /* TODO Le lseek me parait optionnel */
+				/*lseek(archive, debut, SEEK_SET);  Le lseek me parait optionnel */
 			}
 			else
 			{	/* On archive tous les fichiers qui sont dans ce repertoire */
@@ -324,10 +324,6 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 	char checksum[CHECKSUM_SIZE];
 	int lus;
 
-    /*  Stocke les arborescence des fichiers à extraire
-        utilisé notamment lorsqu'on veut extraire un repertoir et tous les fichier*/
-	char *arborescences[MAX_PATH];
-	int a = 0;
 	int err = 0;
 
 
@@ -380,40 +376,14 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
         /* Y a-t-il des fichiers spécifiques à extraire ? */
         if(firstPath != -1)
         {
-            // On ne veux extraire que les fichier en paramètre
+            /* On ne veux extraire que les fichier en paramètre */
             for(i = firstPath; i < argc; i++)
             {
-                if(!strcmp(getArborescence(filename,arbo),argv[i]) || !strcmp(filename,argv[i]))
+                if(( (argv[i][strlen(argv[i])-1] == '/') && !strncmp(filename,argv[i],strlen(argv[i])) )
+                    || !strcmp(filename,argv[i]))
                 {
                     extraire = 1;
-
-                    /*  Coment savoir si ce qu'a mis l'utilisateur final
-                        est un répertoire ou un fichier ?
-                        Pour cela, on va encore définir une politique pars defaut
-                        sur le type de fichier q'uon a en paramètre positionnel.
-                        On part du principe que si l'utilisateur met un '/' final
-                        on a un répertoire.
-                        Dans le cas contraire, on a un fichier normal */
-                    if(argv[i][strlen(argv[i])-1] == '/')
-                    {
-                        /*On considère le fichier comme un répertoire*/
-                        if(S_ISDIR(info.mode) && !dansArborescence(argv[i], arborescences,a))
-                        {
-                            arborescences[a++] = argv[i];
-                        }
-                    }
-
                     break;
-                }
-                else
-                {
-                    /* Si le fichier appartient à une arborescence à extraire */
-                    if(dansArborescence(getArborescence(argv[i], arbo), arborescences,a))
-                    {
-                        /* Il appartient à l'arborescence à extraire, on l'extrait donc */
-                        extraire = 1;
-                        break;
-                    }
                 }
             }
 
@@ -489,7 +459,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 				}
 			}
 
-            // On crée l'arborescence
+            /* On crée l'arborescence */
 			if(mkdirP(filename) == -1)
 			{
 				warn("Erreur à la création de l'arborescence %s ", filename);
@@ -527,7 +497,6 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 
 		if(fdOutput == -1)
 		{
-			/*close(archive); */
 			warn("erreur à l'ouverture du fichier archivé %s ",filename);
 			continue;
 		}
@@ -566,7 +535,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
                     printf("%s: ATTENTION : Le fichier %s n'est pas intègre \n",argv[0],filename);
             }
             else if(err == 0)
-               printf("%s: INFO : Le fchecksum de %s n'est pas renseigné \n",argv[0],filename);
+               printf("%s: INFO : Le checksum de %s n'est pas renseigné \n",argv[0],filename);
             else
                 fprintf(stderr,"%s: %s : Probleme interne à checksumRenseigne() ou paramètres invalides\n",argv[0],filename);
         }
@@ -643,14 +612,10 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	int taille_archive;
 	int i,j, lus;
 
-	char tmpFichier[] = "/tmp/tampon_F";
+	char tmpFichier[] = "/tmp/.tampon.kl.mtr";
 
 	char buf[BUFSIZE];
 	char filename[BUFSIZE];
-
-    char *arborescences[MAX_PATH];
-    char arbo[MAX_PATH];
-	int a = 0;
 
 	struct stat s;
 	Entete info;
@@ -716,50 +681,48 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 		filename[info.path_length] = '\0';
 
-        // On ne veux supprimer que les fichiers en paramètre
+        /* On ne veux supprimer que les fichiers en paramètre */
         for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
         {
-            if(!strcmp(getArborescence(filename,arbo),argv[i]) || !strcmp(filename,argv[i]))
-            {
-                supprimer = 1;
-
-                /*  Coment savoir si ce qu'a mis l'utilisateur final
-                    est un répertoire ou un fichier ?
+            /*  @note : Comment savoir si ce que l'utilisateur final
+                    a mis est un répertoire ou un fichier ?
                     Pour cela, on va encore définir une politique pars defaut
-                    sur le type de fichier q'uon a en paramètre positionnel.
+                    sur le type de fichier qu'on a en paramètre positionnel.
                     On part du principe que si l'utilisateur met un '/' final
-                    on a un répertoire.
-                    Dans le cas contraire, on a un fichier normal */
-                if(argv[i][strlen(argv[i])-1] == '/')
-                {
-                    /*On considère le fichier comme un répertoire*/
-                    if(S_ISDIR(info.mode) && !dansArborescence(argv[i], arborescences,a))
-                    {
-                        arborescences[a++] = argv[i];
-                    }
-                }
+                    on a un répertoire. Dans le cas contraire, on a un fichier normal
+
+                @note : On fait une simple comparaison de fichier.
+                    Si c'est bon, ok, sinon, on regarde si argv[i] est un dossier
+                    et si le filename est dans l'arborescence de argv[i]
+            */
+            if( !strcmp(filename,argv[i]) || ( (argv[i][strlen(argv[i])-1] == '/')
+                                              && !strncmp(filename,argv[i], strlen(argv[i])) ) )
+            {   /* On a deux fichiers egaux ou un fichier qui est dans l'arborescence argv[i] */
+                supprimer = 1;
 
                 break;
             }
-            else
-            {
-                /* Si le fichier appartient à une arborescence à supprimer */
-                if(dansArborescence(getArborescence(filename, arbo), arborescences,a))
-                {
-                    /* Il appartient à l'arborescence à supprimer, on l'extrait donc */
-                    supprimer = 1;
-                    break;
-                }
-            }
+
         }
 
         if(supprimer)
         {
+#ifdef DEBUG
+	printf("DEBUG : Suppression de %s \n",filename);
+#endif
+
             if(S_ISLNK(info.mode))
             {
+#ifdef DEBUG
+	printf("DEBUG : %s est un lien symbolique \n",filename);
+#endif
+
                 /* C'est un lien */
                 if(!sp->flag_s)
                 {
+#ifdef DEBUG
+	printf("DEBUG : '-s' absent, pas de suppression \n",filename);
+#endif
                     /* L'option '-s' n'est pas actif -> le lien doit être ignoré
                         dans la suppression (pas de suppression) */
                     ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
@@ -767,41 +730,24 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
                 }
                 else
                 {
+#ifdef DEBUG
+	printf("DEBUG : %s peut effectivement être supprimé \n",filename);
+#endif
                     /* On doit supprimer le lien */
                     lseek(fdArchive,info.file_length,SEEK_CUR);
                 }
 
             }
-
-            lseek(fdArchive,info.file_length,SEEK_CUR);
-
-            continue;
+            else{
+#ifdef DEBUG
+	printf("DEBUG : %s a été supprimé \n",filename);
+#endif
+                lseek(fdArchive,info.file_length,SEEK_CUR);
+            }
         }
+        else
+            ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
 
-
-
-
-
-
-
-
-		for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
-		{
-
-			if(strcmp(argv[i],filename)==0)
-			{
-
-				/* Si le fichier est un lien symbolique */
-
-
-			}
-			else
-			{
-				ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
-			}
-
-
-		}
 	}
 
 	close(fdFichier);
@@ -844,7 +790,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	close(fdFichier);
 	close(fdArchive);
 
-	/*unlink(tmpFichier);*/
+	unlink(tmpFichier); /* On supprime le fichier tampon */
 
 	return 0;
 }
@@ -1012,7 +958,7 @@ int checksumRenseigne(char * checksum)
 {
     int i = 0;
 
-    if(checksum == NULL || strlen(checksum) != CHECKSUM_SIZE)
+    if(checksum == NULL)
         return -1; /* Le checksum n'est pas conforme, problème ! */
 
     /* Tant qu'on est pas à la fin et qu'on a rien de défini */
@@ -1021,11 +967,11 @@ int checksumRenseigne(char * checksum)
         i++;
     }
 
-    /*  Si on est pas arrivé au bout, on considère que le checksum est définit*/
+    /*  Si on est pas arrivé au bout, on considère que le checksum est défini */
     if(i != CHECKSUM_SIZE)
         return 1;
 
-    return 0;   /* Si on arrive là, alors cela signifie que le checksum n'est pas défini*/
+    return 0;   /* Si on arrive là, alors cela signifie que le checksum n'est pas défini */
 
 }
 
@@ -1176,17 +1122,17 @@ int mkdirP(char *arborescence)
     Si au moins une des deux chaines est NULL,
     alors le comportement est indéfini.
     En effet, la valeur NULL n'est retourné que si
-    on a un fichier qui n'est pas dans une arborescence*/
+    on a un fichier qui n'est pas dans une arborescence
+    Attention : ne s'applique pas sur un répertoire */
 char *getArborescence(char *filename, char *newA)
 {
     int i;
-
-    /*if(filename, newA)
-        return NULL;*/
+    int dernierSlash = 0;
 
     memset(newA,0,MAX_PATH);
 
-    i = strlen(filename) - 1;
+    if(filename[strlen(filename) - 1] == '/')
+        i = strlen(filename) - 1;
 
     while(i >= 0 && filename[i] != '/')
     {
@@ -1197,34 +1143,11 @@ char *getArborescence(char *filename, char *newA)
     if(i == -1)
         return NULL;
     else
-    {
         strncpy(newA,filename,i+1);
-    }
 
     return newA;
 }
 
-/*  Test si une arborescence est déjà dans un tableau
-    d'arborescence. retourne 1 si oui , 0 sinon */
-int dansArborescence(char *arbo, char *arborescences[], int lgr)
-{
-    int k = 0;
-
-    if(arbo == NULL || arborescences == NULL )
-    {
-        return 0;
-    }
-
-    while(k < lgr)
-    {
-        if(!strcmp(arborescences[k], arbo))
-            return 1;   /* On l'a trouvé*/
-
-        k++;
-    }
-
-    return 0;
-}
 
 
 

@@ -67,7 +67,7 @@ typedef struct Entete{
 void usage(char *prog);
 
 void ecrireEntete(int archive, Entete *info, char *filename);
-									/* usage */
+
 int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);		/* creation de l'archive */
 
 void archiver(int archive, char *filename, Parametres *sp);		/* archiver un fichier */
@@ -80,22 +80,31 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);		/*Ajout du fichier dans l'archive*/
 int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);	/*Suppression de*/
 
+
 int liste_fichiers(char *archive_file, Parametres *sp);
+
+
+/* Içi, la liste de toutes les fonctions annexes */
+
 
 void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 
-char * md5sum(const char *filename, char *checksum);	/* Fonction qui calcul le md5 du ficheir pris en paramètre*/
+/* Fonction qui calcul le md5 du ficheir pris en paramètre*/
+char * md5sum(const char *filename, char *checksum);
 
-int checksumRenseigne(char * checksum);                 /* Verifie si le md5 d'un fichier est renseigné*/
+/* Verifie si le md5 d'un fichier est renseigné*/
+int checksumRenseigne(char * checksum);
 
-/* Supprimer les ".." || le '/' de début de chaine */
+/* Supprimer les "../" , "./" || le '/' de début de chaine */
 char *enleverSlashEtPoints(char *oldchaine, char *newchaine);
 
+/* Créer une arborescence à partir du chemin passé en paramètre*/
 int mkdirP(char *arborescence);
 
+/*  Permet d'obtenir l'arborescence à laquelle appartient
+    un fichier tel que ce fichier ne soit pas un répertoire */
 char *getArborescence(char *filename, char *newA);
 
-int dansArborescence(char *arbo, char *arborescences[], int lgr);
 
 #endif /* MYTAR_INCLUDED_H */
 
