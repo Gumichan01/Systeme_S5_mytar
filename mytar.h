@@ -46,6 +46,8 @@
 #define GRP_RX 0050         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) groupe */
 #define OTH_RX 0005         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) autres */
 
+#define USR_W 0600          /* Droit d'écriture sur un fichier */
+
 
 #define DEBUG			/* Constante pour le debogage */
 

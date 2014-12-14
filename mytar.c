@@ -75,6 +75,13 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 	}
 
 
+	if(firstPath == -1)
+	{
+	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
+        fprintf(stderr," %s:ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
+        return -1;
+	}
+
 	/* On ouvre l'archive */
 	if((archive = open(archive_file, O_WRONLY | O_TRUNC | O_CREAT, 0660)) == -1 )
 	{
@@ -137,7 +144,7 @@ void archiver(int archive, char *filename, Parametres *sp)
         }
 
 #ifdef DEBUG
-	printf("DEBUG : Après avoir enlever les caractères parasites : %s \n",newF);
+	printf("DEBUG : %s -> %s \n",filename,newF);
 #endif
 
 		/* On récupère les informations du fichier puis on les mets dans l'entete */
@@ -183,7 +190,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 			if((info.mode & USR_RX) != USR_RX || (info.mode & GRP_RX) != GRP_RX || (info.mode & OTH_RX) != OTH_RX)
 			{
 				fprintf(stderr,"ATTENTION : %s - Droit non valides sur le fichier \n",filename);
-				lseek(archive, debut, SEEK_SET);
+				lseek(archive, debut, SEEK_SET); /* TODO Le lseek me parait optionnel */
 			}
 			else
 			{	/* On archive tous les fichiers qui sont dans ce repertoire */
@@ -376,7 +383,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
             // On ne veux extraire que les fichier en paramètre
             for(i = firstPath; i < argc; i++)
             {
-                if(!strcmp(filename,argv[i]))
+                if(!strcmp(getArborescence(filename,arbo),argv[i]) || !strcmp(filename,argv[i]))
                 {
                     extraire = 1;
 
@@ -593,11 +600,19 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 		return -1;
 	}
 
+
+	if(firstPath == -1)
+	{
+	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
+        fprintf(stderr," %s:ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
+        return -1;
+	}
+
+
 	fdArchive = open(archive_file,O_WRONLY| O_APPEND);
 
 	if(fdArchive == -1)
 	{
-
 		warn("erreur à l'ouverture du fichier archivé %s ",archive_file);
 		return -1;
 	}
@@ -633,21 +648,34 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	char buf[BUFSIZE];
 	char filename[BUFSIZE];
 
+    char *arborescences[MAX_PATH];
+    char arbo[MAX_PATH];
+	int a = 0;
+
 	struct stat s;
 	Entete info;
+
+	int supprimer = 0;
 
 
 	if(sp == NULL) return -1;
 
 	if(!sp->flag_d)
 	{
-		fprintf(stderr,"ERREUR: supression dans l'archive non permise, option '-d' non detectée ");
+		fprintf(stderr," %s:ERREUR: supression dans l'archive non permise, option '-d' non detectée \n",argv[0]);
 		return -1;
+	}
+
+	if(firstPath == -1)
+	{
+	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
+        fprintf(stderr," %s:ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
+        return -1;
 	}
 
 	if(stat(archive_file, &s) == -1)
 	{
-		warn("%s - impossible d'obtenir les informations sur le fichier archive ",archive_file);
+		warn("%s - impossible d'obtenir les informations sur le fichier %s \n",argv[0],archive_file);
 		return -1;
 	}
 
@@ -658,11 +686,11 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	if(fdArchive == -1)
 	{
 
-		warn("erreur à l'ouverture du fichier archivé %s ",archive_file);
+		warn("%s : erreur à l'ouverture du fichier archivé %s \n",argv[0],archive_file);
 		return -1;
 	}
 
-	fdFichier = open(tmpFichier,O_WRONLY|O_TRUNC|O_CREAT,0660);
+	fdFichier = open(tmpFichier,O_WRONLY|O_TRUNC|O_CREAT,USR_W);
 
 	if(fdFichier == -1)
 	{
@@ -674,6 +702,8 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	/* Tant qu'on n'est pas à la fin de l'archive */
 	while(lseek(fdArchive,0,SEEK_CUR) != taille_archive)
 	{
+	    supprimer = 0;
+
 		/* On lit l'entete */
 
 		read(fdArchive,&info.path_length,sizeof(info.path_length));
@@ -686,6 +716,74 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 		filename[info.path_length] = '\0';
 
+        // On ne veux supprimer que les fichiers en paramètre
+        for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
+        {
+            if(!strcmp(getArborescence(filename,arbo),argv[i]) || !strcmp(filename,argv[i]))
+            {
+                supprimer = 1;
+
+                /*  Coment savoir si ce qu'a mis l'utilisateur final
+                    est un répertoire ou un fichier ?
+                    Pour cela, on va encore définir une politique pars defaut
+                    sur le type de fichier q'uon a en paramètre positionnel.
+                    On part du principe que si l'utilisateur met un '/' final
+                    on a un répertoire.
+                    Dans le cas contraire, on a un fichier normal */
+                if(argv[i][strlen(argv[i])-1] == '/')
+                {
+                    /*On considère le fichier comme un répertoire*/
+                    if(S_ISDIR(info.mode) && !dansArborescence(argv[i], arborescences,a))
+                    {
+                        arborescences[a++] = argv[i];
+                    }
+                }
+
+                break;
+            }
+            else
+            {
+                /* Si le fichier appartient à une arborescence à supprimer */
+                if(dansArborescence(getArborescence(filename, arbo), arborescences,a))
+                {
+                    /* Il appartient à l'arborescence à supprimer, on l'extrait donc */
+                    supprimer = 1;
+                    break;
+                }
+            }
+        }
+
+        if(supprimer)
+        {
+            if(S_ISLNK(info.mode))
+            {
+                /* C'est un lien */
+                if(!sp->flag_s)
+                {
+                    /* L'option '-s' n'est pas actif -> le lien doit être ignoré
+                        dans la suppression (pas de suppression) */
+                    ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
+                    continue;
+                }
+                else
+                {
+                    /* On doit supprimer le lien */
+                    lseek(fdArchive,info.file_length,SEEK_CUR);
+                }
+
+            }
+
+            lseek(fdArchive,info.file_length,SEEK_CUR);
+
+            continue;
+        }
+
+
+
+
+
+
+
 
 		for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
 		{
@@ -694,14 +792,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 			{
 
 				/* Si le fichier est un lien symbolique */
-				if(S_ISLNK(info.mode) && !sp->flag_s)
-				{
-					/* L'option '-s' n'est pas actif -> le lien doit être ignoré dans la suppression (pas de suppression) */
-					ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
-					continue;
-				}
 
-				lseek(fdArchive,info.file_length,SEEK_CUR);
 
 			}
 			else
@@ -711,8 +802,6 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 
 		}
-
-
 	}
 
 	close(fdFichier);
@@ -924,7 +1013,7 @@ int checksumRenseigne(char * checksum)
     int i = 0;
 
     if(checksum == NULL || strlen(checksum) != CHECKSUM_SIZE)
-        return -1;
+        return -1; /* Le checksum n'est pas conforme, problème ! */
 
     /* Tant qu'on est pas à la fin et qu'on a rien de défini */
     while(i < CHECKSUM_SIZE && checksum[i] == 0)
@@ -945,10 +1034,11 @@ int checksumRenseigne(char * checksum)
 char *enleverSlashEtPoints(char *oldchaine, char *newchaine){
 
     int i = 0,j = 0;
-    int cheminAbs = 1;
-    int dejaCopie = 0;
-    int debut = 0;          /* Debut d'une sous-chaine*/
+    int cheminAbs = 1;      /* Variable indiquant qu'on a un chemin normal*/
+    int dejaCopie = 0;      /* Variable indiquant qu'aucune copie n'a été faite */
+    int debut = 0;              /* Debut d'une sous-chaine*/
     int apresDernierPoints = 0; /*La position après les "../" */
+
 
     if(oldchaine == NULL || newchaine == NULL)
         return NULL;
@@ -1008,7 +1098,7 @@ char *enleverSlashEtPoints(char *oldchaine, char *newchaine){
         {   /*  On a un chemin absolu, on copie toute la chaine tel quelle
                 en prenant soin de ne pas avoir le '/' */
             strncpy(newchaine,(oldchaine + j),strlen(oldchaine) -j);
-            newchaine[strlen(oldchaine) -j] = '\0';    /* pour être su d'avoir le '\0'*/
+            newchaine[strlen(oldchaine) -j] = '\0';    /* pour être sûr d'avoir le '\0' */
         }
         else
         {
@@ -1030,7 +1120,7 @@ char *enleverSlashEtPoints(char *oldchaine, char *newchaine){
 }
 
 
-
+/* Créer une arborescence en utilisant la commane système "mkdir -p" */
 int mkdirP(char *arborescence)
 {
 	pid_t p;
@@ -1084,7 +1174,9 @@ int mkdirP(char *arborescence)
 /*  Renvoie le 'pwd' du fichier mis en paramètre et
     stocke le resultat dans la 2ème chaine
     Si au moins une des deux chaines est NULL,
-    alors le comportement est indéfini */
+    alors le comportement est indéfini.
+    En effet, la valeur NULL n'est retourné que si
+    on a un fichier qui n'est pas dans une arborescence*/
 char *getArborescence(char *filename, char *newA)
 {
     int i;
