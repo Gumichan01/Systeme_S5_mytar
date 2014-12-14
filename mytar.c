@@ -481,6 +481,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 			}
 		}
 
+
         /* On test si le fichier est dans une arborescence */
         if(getArborescence(filename,arbo) != NULL)
         {
@@ -498,6 +499,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 		if(fdOutput == -1)
 		{
 			warn("erreur à l'ouverture du fichier archivé %s ",filename);
+			lseek(archive,info.file_length,SEEK_CUR);
 			continue;
 		}
 
@@ -681,7 +683,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 		filename[info.path_length] = '\0';
 
-        /* On ne veux supprimer que les fichiers en paramètre */
+        /* On ne veut supprimer que les fichiers en paramètre */
         for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
         {
             /*  @note : Comment savoir si ce que l'utilisateur final
@@ -1131,8 +1133,7 @@ char *getArborescence(char *filename, char *newA)
 
     memset(newA,0,MAX_PATH);
 
-    if(filename[strlen(filename) - 1] == '/')
-        i = strlen(filename) - 1;
+    i = strlen(filename) - 1;
 
     while(i >= 0 && filename[i] != '/')
     {
