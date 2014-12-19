@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <err.h>
+#include <time.h>
 
 #include "mytar_posix_lib.h"
 
@@ -41,13 +42,17 @@
 #define MAX_PATH 256		/* Constante definissant la longueur max du nom du fichier */
 #endif
 
+#ifndef CHAMPSMAX
+#define CHAMPSMAX 32		/* Constante definissant la longueur max du nom du fichier */
+#endif
 
 #define USR_RX 0500         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) propriétaire */
 #define GRP_RX 0050         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) groupe */
 #define OTH_RX 0005         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) autres */
 
-#define USR_W 0600          /* Droit d'écriture sur un fichier */
 
+#define USR_RW 0600          /* Droit d'écriture sur un fichier */
+#define USR_RWX 0700
 
 #define DEBUG			/* Constante pour le debogage */
 
@@ -105,6 +110,8 @@ int mkdirP(char *arborescence);
     un fichier tel que ce fichier ne soit pas un répertoire */
 char *getArborescence(char *filename, char *newA);
 
+/* Rempli le champs d'information à partir des informations du fichier*/
+char *remplirChamps(const Entete *info, char *champs);
 
 #endif /* MYTAR_INCLUDED_H */
 

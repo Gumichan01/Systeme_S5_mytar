@@ -331,7 +331,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 	printf("DEBUG : Extraction de %s \n", archive_file);
 #endif
 
-	if(argv == NULL || sp == NULL) return -1;
+	if(sp == NULL) return -1;
 
 	if(!sp->flag_x)
 	{
@@ -611,7 +611,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 
 	int fdArchive, fdFichier;
-	int taille_archive;
+	off_t taille_archive;
 	int i,j, lus;
 
 	char tmpFichier[] = "/tmp/.tampon.kl.mtr";
@@ -636,7 +636,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	if(firstPath == -1)
 	{
 	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
-        fprintf(stderr," %s:ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
+        fprintf(stderr," %s:ERREUR: Aucun fichier n'a été renseigné \n",argv[0]);
         return -1;
 	}
 
@@ -657,7 +657,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		return -1;
 	}
 
-	fdFichier = open(tmpFichier,O_WRONLY|O_TRUNC|O_CREAT,USR_W);
+	fdFichier = open(tmpFichier,O_WRONLY|O_TRUNC|O_CREAT,USR_RW);
 
 	if(fdFichier == -1)
 	{
@@ -723,7 +723,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
                 if(!sp->flag_s)
                 {
 #ifdef DEBUG
-	printf("DEBUG : '-s' absent, pas de suppression \n",filename);
+	printf("DEBUG : '-s' absent, pas de suppression \n");
 #endif
                     /* L'option '-s' n'est pas actif -> le lien doit être ignoré
                         dans la suppression (pas de suppression) */
@@ -798,23 +798,22 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 }
 
 
-/* option "-l" */
+/*  option "-l" */
+/*  @note Le manque d'informations telles que le nombre de
+    liens vers le fichier ou encore l'UID et le GID ne nous permattent pas
+    de respecter à la lettre le format 'ls -l' */
 int liste_fichiers(char *archive_file, Parametres *sp){
 
     /* TODO liste_fichiers(char *archive_file, Parametres *sp) */
 
-    char filename[BUFSIZE];
-    char infoFichier[BUFSIZE*2];
-    char tmp_char[10];
-    /*char tmp_arch[] = "/tmp/.arch_kl";*/ /* Créer ce repertoire et y mettre une copie de l'archive*/
-    /* @note : Il faudra penser à le supprimer quand on a tout fait*/
-
     Entete info;
     struct stat s;
 
-	int fdArchive;
-    int exit_val = 0;
-    int taille_archive;
+	int archive;
+    off_t taille_archive;
+
+    char filename[MAX_PATH];
+    char champs[BUFSIZE];
 
     if(stat(archive_file,&s) == -1)
     {
@@ -832,25 +831,54 @@ int liste_fichiers(char *archive_file, Parametres *sp){
 		return -1;
 	}
 
-	fdArchive = open(archive_file,O_RDONLY);
+	archive = open(archive_file,O_RDONLY);
 
-	if(fdArchive == -1)
+	if(archive == -1)
 	{
-
 		warn("erreur à l'ouverture du fichier archivé %s ",archive_file);
 		return -1;
 	}
 
-    /* TODO mettre une copie de l'archive dans un repertoire tampon puis tout extraire dans ce même repertoire
-        et faire un ls */
+    /** TODO Lire les entètes, récupérer le mode (pour les droits) et les m_time */
+    while(lseek(archive,0,SEEK_CUR) != taille_archive)
+	{
+		/* On lit l'entete */
 
-	close(fdArchive);
+		read(archive,&info.path_length,sizeof(info.path_length));
+		read(archive,&info.file_length,sizeof(off_t));
+		read(archive,&info.mode,sizeof(mode_t));
+		read(archive,&info.m_time,sizeof(time_t));
+		read(archive,&info.a_time,sizeof(time_t));
+		read(archive,&info.checksum,CHECKSUM_SIZE);
+		read(archive,filename, info.path_length);
 
-	return exit_val;
+		info.checksum[CHECKSUM_SIZE] = '\0';
+		filename[info.path_length] = '\0';
+
+        if(remplirChamps(&info,champs) == NULL)
+        {
+            fprintf(stderr,
+                    "ERREUR : problème lors de la mise en page de l'affichages des informations sur %s \n",
+                    filename);
+        }
+        else
+            printf("%s %s\n",champs,filename);
+
+
+        if(!S_ISDIR(info.mode))
+        {
+            lseek(archive,info.file_length,SEEK_CUR);
+        }
+
+	}
+
+    close(archive);
+
+	return 0;
 }
 
 
-/* Ecrire  le contenu d'un fichier dans un autre (utilisé dans supprimer_fichiers)*/
+/* Ecrire le contenu d'un fichier dans un autre (utilisé dans supprimer_fichiers)*/
 void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize)
 {
 	int j, lus;
@@ -1129,7 +1157,6 @@ int mkdirP(char *arborescence)
 char *getArborescence(char *filename, char *newA)
 {
     int i;
-    int dernierSlash = 0;
 
     memset(newA,0,MAX_PATH);
 
@@ -1149,6 +1176,89 @@ char *getArborescence(char *filename, char *newA)
     return newA;
 }
 
+
+
+char *remplirChamps(const Entete *info, char *champs)
+{
+    char buf_time[CHAMPSMAX];
+    char tmp_str[CHAMPSMAX];
+    int i;
+
+    if(info == NULL || champs == NULL)
+        return NULL;
+
+    memset(champs,0,BUFSIZE);
+
+    sprintf(tmp_str,"%o",info->mode);
+
+
+
+    if(S_ISDIR(info->mode))
+    {
+        champs[0] = 'd';
+    }
+    else if(S_ISLNK(info->mode))
+    {
+        champs[0] = 's';
+    }
+    else if(S_ISREG(info->mode))
+    {
+        champs[0] = '-';
+    }
+    else
+    {
+        fprintf(stderr,"Format invalide");
+        return NULL;
+    }
+
+    for(i = strlen(tmp_str) - 3; i < strlen(tmp_str);i++)
+    {
+        switch(tmp_str[i])
+        {
+            case '1' : strcat(champs,"--x");
+                        break;
+
+            case '2' : strcat(champs,"-w-");
+                        break;
+
+            case '3' : strcat(champs,"-wx");
+                        break;
+
+            case '4' : strcat(champs,"r--");
+                        break;
+
+            case '5' : strcat(champs,"r-x");
+                        break;
+
+            case '6' : strcat(champs,"rw-");
+                        break;
+
+            case '7' : strcat(champs,"rwx");
+                        break;
+
+            default :  strcat(champs,"---");
+                        break;
+
+        }
+
+    }
+
+    strcat(champs," ");   /*On concatène avec ' ' */
+
+    /* On met la taille du fichier */
+    sprintf(tmp_str,"%d",(int)info->file_length);
+    strcat(champs,tmp_str);
+
+    strcat(champs," ");
+
+    /* On met la date */
+    strftime(buf_time, 20, "%b. %d %H:%M ", localtime(&info->m_time));
+    //strcat(champs,asctime(localtime(&info->m_time)));
+    strcat(champs,buf_time);
+
+
+    return champs;
+}
 
 
 
