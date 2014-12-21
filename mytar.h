@@ -43,7 +43,7 @@
 #endif
 
 #ifndef CHAMPSMAX
-#define CHAMPSMAX 32		/* Constante definissant la longueur max du nom du fichier */
+#define CHAMPSMAX 32		/* Constante definissant la longueur des buffer de remplirChamps */
 #endif
 
 #define USR_RX 0500         /* Droit lecture + parcours(répertoire) ou execution(fichier normal) propriétaire */

@@ -41,13 +41,13 @@ void ecrireEntete(int archive, Entete *info, char *filename)
 	if(info != NULL)
 	{
 		write(archive,&info->path_length,sizeof(size_t));	/* ecrire la taille */
-		write(archive,&info->file_length,sizeof(off_t));		/* longueur du contenu */
-		write(archive,&info->mode,sizeof(mode_t));		/* ecrire le mode */
+		write(archive,&info->file_length,sizeof(off_t));    /* longueur du contenu */
+		write(archive,&info->mode,sizeof(mode_t));		    /* ecrire le mode */
 		write(archive,&info->m_time,sizeof(time_t));
 		write(archive,&info->a_time,sizeof(time_t));
 		write(archive,&info->checksum,CHECKSUM_SIZE);
 
-		write(archive, filename, info->path_length);	/* ecrire le nom du fichier */
+		write(archive, filename, info->path_length);	    /* ecrire le nom du fichier */
 	}
 }
 
@@ -1192,7 +1192,6 @@ char *remplirChamps(const Entete *info, char *champs)
     sprintf(tmp_str,"%o",info->mode);
 
 
-
     if(S_ISDIR(info->mode))
     {
         champs[0] = 'd';
@@ -1207,7 +1206,7 @@ char *remplirChamps(const Entete *info, char *champs)
     }
     else
     {
-        fprintf(stderr,"Format invalide");
+        fprintf(stderr,"Format invalide\n");
         return NULL;
     }
 
@@ -1247,6 +1246,11 @@ char *remplirChamps(const Entete *info, char *champs)
 
     /* On met la taille du fichier */
     sprintf(tmp_str,"%d",(int)info->file_length);
+
+    for(i = strlen(tmp_str); i < 9;i++)
+    {
+        strcat(champs," ");
+    }
     strcat(champs,tmp_str);
 
     strcat(champs," ");
