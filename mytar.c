@@ -146,8 +146,6 @@ void archiver(int archive, char *filename, char *root, Parametres *sp)
             return;
         }
 
-        /** TODO Teste le flag '-C', récupère le nom du repertoire
-                et copie le nom du fichier avec le nom de la racine */
         if(sp->flag_C)
         {
             if(strncmp(root,newF,strlen(root)))
@@ -323,8 +321,8 @@ void archiver_rep(int archive, char *rep, char *root, Parametres *sp)
 /* extraction de l'archive */
 int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
-	/* TODO mettre verrou sur l'archive + création arborescence relative à un fichier dans un dossier : int extraire_archive(char *archive_file) */
-	/* TODO Faire le '-v' en extraction -> Verifier l'integrité du fichier décompressé vis-à-vis de ce qui a été indiqué dans le md5 dans l'archive voir l-421 */
+	/* TODO mettre verrou sur l'archive +
+       TODO création arborescence relative à un fichier dans un dossier : int extraire_archive(char *archive_file) */
 	struct stat s,tmp;
 	Entete info;
 
@@ -334,8 +332,9 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 	int extraire = 0;
 
 	char buf[BUFSIZE];
-	char filename[BUFSIZE];
-	char arbo[MAX_PATH];    /*Stocke l'arborescence dans lequel appartient le fichier cible*/
+	char filename[MAX_PATH];
+    char root[MAX_PATH];
+	char arbo[MAX_PATH];    /*Stocke l'arborescence dans laquelle appartient le fichier cible*/
 	char checksum[CHECKSUM_SIZE];
 	int lus;
 
@@ -360,6 +359,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 		return -1;
 	}
 
+    getRepRoot(root,argc,argv);
 
 	taille_archive = s.st_size;
 
@@ -410,6 +410,17 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
                     lseek(archive,info.file_length,SEEK_CUR);
 
                 continue;
+            }
+        }
+
+        if(sp->flag_C)
+        {
+            if(strncmp(root,filename,strlen(root)))
+            {
+                if(catRoot(root,filename) == NULL)
+                {
+                    fprintf(stderr,"Impossible de mettre %s dans l'arborescence %s",filename, root);
+                }
             }
         }
 
@@ -871,7 +882,7 @@ int liste_fichiers(char *archive_file, Parametres *sp){
         if(remplirChamps(&info,champs) == NULL)
         {
             fprintf(stderr,
-                    "ERREUR : problème lors de la mise en page de l'affichages des informations sur %s \n",
+                    "ERREUR : problème lors de la mise en page de l'affichage des informations sur %s \n",
                     filename);
         }
         else
@@ -1278,7 +1289,8 @@ char *remplirChamps(const Entete *info, char *champs)
 }
 
 
-
+/*  Concatène le chemin newF avec le chemin root.
+    Cette fonction est utilisée lorsque l'option '-C' est active */
 char *catRoot(char *rootRep,char *newF)
 {
     char root[MAX_PATH];
@@ -1292,7 +1304,7 @@ char *catRoot(char *rootRep,char *newF)
         return NULL;    /* Il y a eu un problème -> on quitte */
 
     if(root[strlen(root) - 1] != '/')
-        root[strlen(root) - 1] = '/';
+        root[strlen(root)] = '/';
 
     memset(tmp_fichier,0,MAX_PATH);
     strcpy(tmp_fichier,root);
