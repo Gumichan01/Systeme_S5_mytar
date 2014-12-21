@@ -1,17 +1,4 @@
 nom    |no ligne| Commentaire
 
-mytar.c:	/* TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur : void usage(char * prog) */
-mytar.c:	/* TODO par exemple lister tous les usages possibles du programme : void usage(char * prog) */
-mytar.c:	/* TODO poser verrou sur l'archive : void archiver(int archive, char *filename) */
-mytar.c:		    /* TODO supprimer les ".." et le '/' */
-mytar.c:	/* TODO mettre verrou sur l'archive + création arborescence relative à un fichier dans un dossier : int extraire_archive(char *archive_file) */
-mytar.c:	/* TODO Faire le '-v' en extraction -> Verifier l'integrité du fichier décompressé vis-à-vis de ce qui a été indiqué dans le md5 dans l'archive voir l-421 */
-mytar.c:        /* TODO si le fichier est dans une arborescence, crée l'arborescence
-mytar.c:	/* TODO La suppression d'un répertoire + test si un fichier archivé n'est pas valide */
-mytar.c:    	/* TODO liste_fichiers(char *archive_file, Parametres *sp) */
-mytar.c:    	/* TODO mettre une copie de l'archive dans un repertoire tampon puis tout extraire dans ce même repertoire
-mytar.h:	/* TODO revoir l'extraction complete de l'archive*/
-mytar.h:	/* TODO faire l'extraction d'un certain bombre de fichiers de l'archive */
-param.h:	int flag_l;	/* flag liste des fichiers qui sont dans l'archive  (TODO Luxon)*/
-param.h:	int flag_C;	/* flag mettre le répertoire mis en paramètre avec -C comme racine (TODO ensemble) */
-param.h:	int flag_v;	/* flag verification intégrité de l'archive (TODO ensemble) */
+mytar.c:22:	/* TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur : void usage(char * prog) */
+mytar.c:23:	/* TODO par exemple lister tous les usages possibles du programme : void usage(char * prog) */

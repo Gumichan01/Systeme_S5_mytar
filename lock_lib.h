@@ -5,7 +5,7 @@
 *
 *	@brief Une implementation "haut niveau" du système de verrou
 *
-*	@author Luxon JEAN-PIERRE
+*	@author Luxon JEAN-PIERRE, Kahina RAHANI
 *	Licence 3 Informatique
 *
 */
@@ -15,8 +15,12 @@
 #ifndef LOCK_LIB_H
 #define LOCK_LIB_H
 
-/* Fonction lockfile met le verrou sur tout le fichier avec les parametres par defaut */
+/*  Fonction lockfile met le verrou sur
+    tout le fichier avec les parametres par defaut */
 int lockfile(int fd);
+
+/*  Fonction qui déverrouilles le fichier */
+int unlockfile(int fd);
 
 /* Fonction lock_reg met le verrou sur une partie du fichier */
 int lock_reg(int fd, int cmd, short l_type, int offset, short whence, short l_len);

@@ -11,10 +11,6 @@
 *
 */
 
-/* @note 1 : en dehors de la vérification, de l'ajout et de la suppression de l'archive, toutes les fonctions seront
-   des reprises des fonctions du TP 6 de système */
-
-/* @note 2 : Toutes les fonctions doivent utiliser les verrous sur le fichier archive*/
 
 #include "mytar.h"
 
@@ -57,7 +53,6 @@ void ecrireEntete(int archive, Entete *info, char *filename)
 /* archive_file : fichier archive; firstPath : position du premier fichier path */
 int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
-	/* @note tester sp->flag_s */
 	int i;
 	int archive;
 	char root[MAX_PATH];
@@ -81,7 +76,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 	if(firstPath == -1)
 	{
 	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
-        fprintf(stderr," %s : ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
+        fprintf(stderr," %s : ERREUR: Aucun fichier n'a été renseigné \n",argv[0]);
         return -1;
 	}
 
@@ -93,8 +88,15 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 	}
 
 #ifdef DEBUG
-	printf("DEBUG : Fichier %s ouvert, OK\n", archive_file);
+	printf("DEBUG : Fichier %s ouvert, Verrouillage\n", archive_file);
 #endif
+
+    if(lockfile(archive) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s ",getpid(),archive_file);
+        close(archive);
+        return -1;
+    }
 
 	/* On met dans l'archive tous les fichiers */
 	for(i = firstPath; i < argc ; i++)
@@ -107,6 +109,15 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 		archiver(archive,argv[i],root,sp);
 	}
 
+#ifdef DEBUG
+	printf("DEBUG : Déverrouillage du fichier %s\n", archive_file);
+#endif
+
+    if(unlockfile(archive) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu deverrouiller le fichier %s ",getpid(),archive_file);
+    }
+
 	close(archive);
 
 	return 0;
@@ -116,7 +127,6 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 /* archiver un fichier */
 void archiver(int archive, char *filename, char *root, Parametres *sp)
 {
-	/* TODO poser verrou sur l'archive : void archiver(int archive, char *filename) */
 
 	int j;
 	off_t debut;
@@ -321,8 +331,7 @@ void archiver_rep(int archive, char *rep, char *root, Parametres *sp)
 /* extraction de l'archive */
 int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
-	/* TODO mettre verrou sur l'archive +
-       TODO création arborescence relative à un fichier dans un dossier : int extraire_archive(char *archive_file) */
+
 	struct stat s,tmp;
 	Entete info;
 
@@ -369,6 +378,12 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 		return -1;
 	}
 
+    if(read_lock(archive,0,SEEK_SET,0) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s à extraire ",getpid(),archive_file);
+        close(archive);
+        return -1;
+    }
 
 	/* Tant qu'on n'est pas à la fin du fichier */
 	while(lseek(archive,0,SEEK_CUR) != taille_archive)
@@ -413,7 +428,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
                 }
             }
 
-            /* Le fichier que je m'apprête à extraire est-il dans les fichiers désisé*/
+            /* Le fichier que je m'apprête à extraire est-il dans les fichiers désirés */
             if(extraire == 0)
             {   /* Ce n'est pas un fichier que j'ai demandé, on passe à la suite */
 
@@ -540,9 +555,6 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 
 		close(fdOutput);
 
-		/* @note .1 : on récupère le checksum quand '-v' est renseigné && si le checksum est rempli de 0, ne pas faire la comparaison || comparer (utiliser strcmp())*/
-		/* @note .2 : Doit-on afficher quelque chose si la comparaison n'est pas bonne ?  A voir*/
-
         if(sp->flag_v)
         {
             err = checksumRenseigne(info.checksum);
@@ -569,6 +581,11 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
         }
 
 	}
+
+    if(unlockfile(archive) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu deverrouiller le fichier %s ",getpid(),archive_file);
+    }
 
 	close(archive);
 
@@ -612,12 +629,25 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 		return -1;
 	}
 
+
+    if(lockfile(fdArchive) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s ",getpid(),archive_file);
+        close(fdArchive);
+        return -1;
+    }
+
 	lseek(fdArchive,0,SEEK_CUR);
 
 	for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
 	{
 		archiver(fdArchive, argv[i],NULL, sp);
 	}
+
+    if(unlockfile(fdArchive) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu deverrouiller le fichier %s ",getpid(),archive_file);
+    }
 
 	close(fdArchive);
 
@@ -630,15 +660,11 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
 
-	/* TODO La suppression d'un répertoire + test si un fichier archivé n'est pas valide */
-	/* suppression d'un fichier dans l'archive : int supprimer_fichier(char *archive_file, char *filename) */
-
-
 	int fdArchive, fdFichier;
 	off_t taille_archive;
 	int i,j, lus;
 
-	char tmpFichier[] = "/tmp/.tampon.kl.mtr";
+	char tmpFichier[32];
 
 	char buf[BUFSIZE];
 	char filename[BUFSIZE];
@@ -647,6 +673,8 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	Entete info;
 
 	int supprimer = 0;
+
+    sprintf(tmpFichier,"/tmp/.tampon-%d.kl.mtr",(int)getpid());
 
 
 	if(sp == NULL) return -1;
@@ -689,6 +717,24 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		return -1;
 	}
 
+    if(read_lock(fdArchive,0,SEEK_SET,0) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s à extraire ",getpid(),archive_file);
+        close(fdFichier);
+        close(fdArchive);
+        return -1;
+    }
+
+
+    if(lockfile(fdFichier) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s ",getpid(),archive_file);
+        close(fdFichier);
+        unlockfile(fdArchive);
+        close(fdArchive);
+        return -1;
+    }
+
 
 	/* Tant qu'on n'est pas à la fin de l'archive */
 	while(lseek(fdArchive,0,SEEK_CUR) != taille_archive)
@@ -710,17 +756,6 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
         /* On ne veut supprimer que les fichiers en paramètre */
         for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
         {
-            /*  @note : Comment savoir si ce que l'utilisateur final
-                    a mis est un répertoire ou un fichier ?
-                    Pour cela, on va encore définir une politique pars defaut
-                    sur le type de fichier qu'on a en paramètre positionnel.
-                    On part du principe que si l'utilisateur met un '/' final
-                    on a un répertoire. Dans le cas contraire, on a un fichier normal
-
-                @note : On fait une simple comparaison de fichier.
-                    Si c'est bon, ok, sinon, on regarde si argv[i] est un dossier
-                    et si le filename est dans l'arborescence de argv[i]
-            */
             if( !strcmp(filename,argv[i]) || ( (argv[i][strlen(argv[i])-1] == '/')
                                               && !strncmp(filename,argv[i], strlen(argv[i])) ) )
             {   /* On a deux fichiers egaux ou un fichier qui est dans l'arborescence argv[i] */
@@ -776,12 +811,16 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 	}
 
+    unlockfile(fdFichier);
+    unlockfile(fdArchive);
+
 	close(fdFichier);
 	close(fdArchive);
 
 
 	if(stat(tmpFichier, &s) == -1)
 	{
+        /* On a eu un problème quelque part, cela ne doit pas arriver */
 		unlink(tmpFichier);	/* On veut être sûr que le fichier sera bien supprimé, même s'il est possible qu'il soit déjà supprimé */
 		return -1;
 	}
@@ -795,6 +834,15 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		return -1;
 	}
 
+    if(lockfile(fdArchive) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s ",getpid(),archive_file);
+        unlockfile(fdArchive);
+        close(fdArchive);
+        return -1;
+    }
+
+
 	fdFichier = open(tmpFichier,O_RDONLY);
 
 	if(fdFichier == -1)
@@ -803,6 +851,14 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		return -1;
 	}
 
+    if(read_lock(fdFichier,0,SEEK_SET,0) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s ",getpid(),archive_file);
+        close(fdFichier);
+        unlockfile(fdArchive);
+        close(fdArchive);
+        return -1;
+    }
 
 	for(j = 0 ; j < taille_archive/BUFSIZE; j++)
 	{
@@ -812,6 +868,9 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 	lus = read(fdFichier,buf, taille_archive % BUFSIZE);
 	write(fdArchive,buf,lus);
+
+	unlockfile(fdFichier);
+	unlockfile(fdArchive);
 
 	close(fdFichier);
 	close(fdArchive);
@@ -823,12 +882,8 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 
 /*  option "-l" */
-/*  @note Le manque d'informations telles que le nombre de
-    liens vers le fichier ou encore l'UID et le GID ne nous permette pas
-    de respecter à la lettre le format 'ls -l' */
 int liste_fichiers(char *archive_file, Parametres *sp){
 
-    /* TODO liste_fichiers(char *archive_file, Parametres *sp) */
 
     Entete info;
     struct stat s;
@@ -864,7 +919,13 @@ int liste_fichiers(char *archive_file, Parametres *sp){
 		return -1;
 	}
 
-    /** TODO Lire les entètes, récupérer le mode (pour les droits) et les m_time */
+    if(read_lock(archive,0,SEEK_SET,0) == -1)
+    {
+        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s à lire",getpid(),archive_file);
+        close(archive);
+        return -1;
+    }
+
     while(lseek(archive,0,SEEK_CUR) != taille_archive)
 	{
 		/* On lit l'entete */
@@ -910,6 +971,8 @@ int liste_fichiers(char *archive_file, Parametres *sp){
         }
 
 	}
+
+    unlockfile(archive);
 
     close(archive);
 
