@@ -388,6 +388,17 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 		info.checksum[CHECKSUM_SIZE] = '\0';
 		filename[info.path_length] = '\0';
 
+        if(sp->flag_C)
+        {
+            if(strncmp(root,filename,strlen(root)))
+            {
+                if(catRoot(root,filename) == NULL)
+                {
+                    fprintf(stderr,"Impossible de mettre %s dans l'arborescence %s",filename, root);
+                }
+            }
+        }
+
         /* Y a-t-il des fichiers spécifiques à extraire ? */
         if(firstPath != -1)
         {
@@ -410,17 +421,6 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
                     lseek(archive,info.file_length,SEEK_CUR);
 
                 continue;
-            }
-        }
-
-        if(sp->flag_C)
-        {
-            if(strncmp(root,filename,strlen(root)))
-            {
-                if(catRoot(root,filename) == NULL)
-                {
-                    fprintf(stderr,"Impossible de mettre %s dans l'arborescence %s",filename, root);
-                }
             }
         }
 
@@ -837,6 +837,7 @@ int liste_fichiers(char *archive_file, Parametres *sp){
     off_t taille_archive;
 
     char filename[MAX_PATH];
+    char buf[BUFSIZE];
     char champs[BUFSIZE];
 
     if(stat(archive_file,&s) == -1)
@@ -882,16 +883,30 @@ int liste_fichiers(char *archive_file, Parametres *sp){
         if(remplirChamps(&info,champs) == NULL)
         {
             fprintf(stderr,
-                    "ERREUR : problème lors de la mise en page de l'affichage des informations sur %s \n",
+                    "ERREUR : problème lors de la mise en page de l'affichages des informations sur %s \n",
                     filename);
         }
         else
-            printf("%s %s\n",champs,filename);
-
-
-        if(!S_ISDIR(info.mode))
         {
-            lseek(archive,info.file_length,SEEK_CUR);
+            if(S_ISLNK(info.mode) && sp->flag_s)
+            {
+                if(read(archive,buf,info.file_length) == info.file_length )
+                {
+                    buf[info.file_length] = '\0';
+                    strcat(champs,filename);
+                    strcat(champs, " -> ");
+                    strcat(champs,buf);
+                    printf("%s \n",champs);
+                    continue;
+                }
+
+            }
+            else
+            {
+                strcat(champs,filename);
+                printf("%s \n",champs);
+                lseek(archive,info.file_length,SEEK_CUR);
+            }
         }
 
 	}
@@ -1290,7 +1305,7 @@ char *remplirChamps(const Entete *info, char *champs)
 
 
 /*  Concatène le chemin newF avec le chemin root.
-    Cette fonction est utilisée lorsque l'option '-C' est active */
+    Cette fonction est utilisée lorsque l'option '-C'*/
 char *catRoot(char *rootRep,char *newF)
 {
     char root[MAX_PATH];
