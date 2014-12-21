@@ -16,7 +16,7 @@
 
 #include "param.h"
 
-/* On met tous les champs à 0, c'est plus efficace que memset() */
+/*  On met tous les champs à 0 */
 void init(Parametres *sp)
 {
 	if(sp != NULL)
@@ -36,9 +36,8 @@ void init(Parametres *sp)
 }
 
 
-
-/* Fait une vérification des paramètres du programme */
-/* renvoie un nombre de paramètre >=0 si tout s'est bien passé, -1 sinon */
+/*  Fait une vérification des paramètres du programme */
+/*  renvoie un nombre de paramètre >= 0 si tout s'est bien passé, -1 sinon */
 int check_param(int argc, char **argv, Parametres *sp)
 {
 
@@ -109,7 +108,8 @@ int check_param(int argc, char **argv, Parametres *sp)
 
 		if(!strcmp(argv[i],"-l"))
 		{
-			if(sp->flag_l)
+			if(sp->flag_l || sp->flag_a ||
+                    sp->flag_c || sp->flag_d || sp->flag_x)
 			{
 
 				return -1;
@@ -165,7 +165,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 
 		if(!strcmp(argv[i],"-C"))
 		{
-			if(sp->flag_C)
+			if(sp->flag_C || sp->flag_a)
 			{
 
 				return -1;
@@ -209,7 +209,7 @@ int check_param(int argc, char **argv, Parametres *sp)
 	return compt;
 }
 
-/* Stocke le nom du fichier archive dans buf et renvoie l'adresse de buf */
+/*  Stocke le nom du fichier archive dans buf et renvoie l'adresse de buf */
 char * getArchive(char *buf,int argc,char **argv)
 {
 		int i = 1;
@@ -230,7 +230,6 @@ char * getArchive(char *buf,int argc,char **argv)
 
 	return buf;
 }
-
 
 
 int getFirstPath(int argc, char **argv)
@@ -263,6 +262,52 @@ int getFirstPath(int argc, char **argv)
 
 	return -1;
 }
+
+
+/*  Stocke le nom du répertoire cible renseigné avec -C
+    dans buf et renvoie l'adresse de buf */
+char * getRepRoot(char *buf,int argc,char **argv)
+{
+		int i = 1;
+
+		if(buf == NULL)
+            return NULL;
+
+        memset(buf,0,MAX_FILE);
+
+		while((i<argc) && strcmp(argv[i],"-C"))
+		{
+			i++;
+		}
+
+		if(i >= argc-1)
+		{
+			return NULL;
+		}
+
+
+        strcpy(buf,argv[i+1]);
+
+
+	return buf;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

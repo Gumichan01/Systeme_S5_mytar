@@ -27,13 +27,13 @@ int main(int argc, char **argv)
 
 	if(argc < 2 )
 	{
-		fprintf(stderr,"%s : Manque d'arguments, faire %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
+		fprintf(stderr," %s : Manque d'arguments\n %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
 		return EXIT_FAILURE;
 	}
 
 	if( ( nb_param = check_param(argc,argv,&sp)) == -1)
 	{
-		fprintf(stderr," %s : Problème avec les options du programme, faire %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
+		fprintf(stderr," %s : Problème avec les options du programme\n %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -55,10 +55,12 @@ int main(int argc, char **argv)
 	/* Si le sp.flag -f n'est pas présent, arrêt du programme */
 	if(!sp.flag_f)
 	{
-		fprintf(stderr," %s : Erreur fatal, option -f (obligatoire) non présente, faire %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
+		fprintf(stderr," %s : Erreur fatal, option -f (obligatoire) non présente\n %s -h pour savoir comment utiliser le programme\n",argv[0],argv[0]);
 		return EXIT_FAILURE;
 	}
 
+    /*  Récupération des informations
+        (nom de l'archive, repertoire racine si '-C' actif) */
 	getArchive(archive_file,argc,argv);
 	param = getFirstPath(argc,argv);
 

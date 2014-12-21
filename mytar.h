@@ -73,24 +73,20 @@ void usage(char *prog);
 
 void ecrireEntete(int archive, Entete *info, char *filename);
 
-int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);		/* creation de l'archive */
+int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
 
-void archiver(int archive, char *filename, Parametres *sp);		/* archiver un fichier */
-void archiver_rep(int archive, char *rep, Parametres *sp);		/* archiver un répertoire */
+void archiver(int archive, char *filename,char *root, Parametres *sp);
+void archiver_rep(int archive, char *rep, char *root, Parametres *sp);
 
-/* TODO revoir l'extraction complete de l'archive*/
-int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);		/* extraction de l'archive */
-/* TODO faire l'extraction d'un certain bombre de fichiers de l'archive */
+int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
 
-int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);		/*Ajout du fichier dans l'archive*/
-int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);	/*Suppression de*/
-
+int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);
+int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
 
 int liste_fichiers(char *archive_file, Parametres *sp);
 
 
 /* Içi, la liste de toutes les fonctions annexes */
-
 
 void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 
@@ -112,6 +108,8 @@ char *getArborescence(char *filename, char *newA);
 
 /* Rempli le champs d'information à partir des informations du fichier*/
 char *remplirChamps(const Entete *info, char *champs);
+
+char *catRoot(char *rootRep,char *newF);
 
 #endif /* MYTAR_INCLUDED_H */
 

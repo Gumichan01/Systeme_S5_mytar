@@ -60,6 +60,9 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 	/* @note tester sp->flag_s */
 	int i;
 	int archive;
+	char root[MAX_PATH];
+
+	getRepRoot(root,argc,argv);
 
 #ifdef DEBUG
 	printf("DEBUG : Ouverture du fichier %s\n", archive_file);
@@ -70,7 +73,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 
 	if(!sp->flag_c)
 	{
-		fprintf(stderr,"%s, création de l'archive non permise, option '-c' non detectée ",argv[0]);
+		fprintf(stderr,"%s : création de l'archive non permise, option '-c' non detectée ",argv[0]);
 		return -1;
 	}
 
@@ -78,12 +81,12 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 	if(firstPath == -1)
 	{
 	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
-        fprintf(stderr," %s:ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
+        fprintf(stderr," %s : ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
         return -1;
 	}
 
 	/* On ouvre l'archive */
-	if((archive = open(archive_file, O_WRONLY | O_TRUNC | O_CREAT, 0660)) == -1 )
+	if((archive = open(archive_file, O_WRONLY | O_TRUNC | O_CREAT, USR_RW)) == -1 )
 	{
 		warn("Problème à la création de l'archive %s ",archive_file);
 		return -1;
@@ -101,7 +104,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 	printf("DEBUG : Lecture du fichier %s\n", argv[i]);
 #endif
 
-		archiver(archive,argv[i],sp);
+		archiver(archive,argv[i],root,sp);
 	}
 
 	close(archive);
@@ -111,7 +114,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 
 
 /* archiver un fichier */
-void archiver(int archive, char *filename, Parametres *sp)
+void archiver(int archive, char *filename, char *root, Parametres *sp)
 {
 	/* TODO poser verrou sur l'archive : void archiver(int archive, char *filename) */
 
@@ -143,6 +146,19 @@ void archiver(int archive, char *filename, Parametres *sp)
             return;
         }
 
+        /** TODO Teste le flag '-C', récupère le nom du repertoire
+                et copie le nom du fichier avec le nom de la racine */
+        if(sp->flag_C)
+        {
+            if(strncmp(root,newF,strlen(root)))
+            {
+                if(catRoot(root,newF) == NULL)
+                {
+                    fprintf(stderr,"Impossible de mettre le fichier %s dans le repertoire cible dans l'archive",filename);
+                }
+            }
+        }
+
 #ifdef DEBUG
 	printf("DEBUG : %s -> %s \n",filename,newF);
 #endif
@@ -172,7 +188,6 @@ void archiver(int archive, char *filename, Parametres *sp)
 				}
 				else
 				{
-					/*buf[lus] = '\0';*/
 					ecrireEntete(archive,&info,newF);
 					write(archive,buf,lus);
 				}
@@ -206,7 +221,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 			    }
 
 				ecrireEntete(archive,&info,newF);
-				archiver_rep(archive,filename,sp);
+				archiver_rep(archive,filename,root,sp);
 			}
 		}
 		else if(S_ISREG(info.mode) > 0)	/* Le cas d'un fichier régulier , on lit son contenu */
@@ -263,7 +278,7 @@ void archiver(int archive, char *filename, Parametres *sp)
 
 /* archiver un répertoire */
 /* On suppose que la structure est bien passée en parametre */
-void archiver_rep(int archive, char *rep, Parametres *sp)
+void archiver_rep(int archive, char *rep, char *root, Parametres *sp)
 {
 	struct dirent *sd = NULL;
 	DIR *dir = NULL;
@@ -297,7 +312,7 @@ void archiver_rep(int archive, char *rep, Parametres *sp)
 
 			strcat(nomFichier, sd->d_name);
 
-			archiver(archive, nomFichier,sp);
+			archiver(archive, nomFichier, root,sp);
 		}
 
 		closedir(dir);
@@ -557,8 +572,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 /* option "-a"*/
 int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
-	/*ajout d'un fichier dans l'archive : int ajouter_fichier(char *archive_file, char *filename) */
-	/* @note tester sp->flag_a */
+
 	int fdArchive;
 	int i;
 
@@ -570,7 +584,6 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 		fprintf(stderr,"ERREUR : ajout dans l'archive non permise, option '-a' non detectée ");
 		return -1;
 	}
-
 
 	if(firstPath == -1)
 	{
@@ -588,11 +601,11 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 		return -1;
 	}
 
-	lseek(fdArchive,0,SEEK_CUR);	/* On se met à -1 car le dernier octet du fichier à pour pour hexadecimal  0x0A*/
+	lseek(fdArchive,0,SEEK_CUR);
 
 	for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
 	{
-		archiver(fdArchive, argv[i], sp);
+		archiver(fdArchive, argv[i],NULL, sp);
 	}
 
 	close(fdArchive);
@@ -800,7 +813,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 /*  option "-l" */
 /*  @note Le manque d'informations telles que le nombre de
-    liens vers le fichier ou encore l'UID et le GID ne nous permattent pas
+    liens vers le fichier ou encore l'UID et le GID ne nous permette pas
     de respecter à la lettre le format 'ls -l' */
 int liste_fichiers(char *archive_file, Parametres *sp){
 
@@ -878,7 +891,7 @@ int liste_fichiers(char *archive_file, Parametres *sp){
 }
 
 
-/* Ecrire le contenu d'un fichier dans un autre (utilisé dans supprimer_fichiers)*/
+/* Ecrire le contenu d'un fichier dans un autre (utilisée dans supprimer_fichiers)*/
 void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize)
 {
 	int j, lus;
@@ -981,7 +994,7 @@ char * md5sum(const char *filename, char *checksum)
     Vérifies si le md5 d'un fichier est renseigné
     Si oui , la fonction retourne 1, 0 sinon.
     Si le checksum est NULL ou a une longueur
-    strictement inférieur à la gueur d'un checksum
+    strictement inférieur à la longueur d'un checksum
     renvoie -1.
 */
 int checksumRenseigne(char * checksum)
@@ -1263,6 +1276,44 @@ char *remplirChamps(const Entete *info, char *champs)
 
     return champs;
 }
+
+
+
+char *catRoot(char *rootRep,char *newF)
+{
+    char root[MAX_PATH];
+    char tmp_fichier[MAX_PATH];
+
+    /* rootRep ou newF est NULL ? -> on quitte */
+    if( rootRep == NULL || newF == NULL )
+        return NULL;
+
+    if( enleverSlashEtPoints(rootRep,root) == NULL )
+        return NULL;    /* Il y a eu un problème -> on quitte */
+
+    if(root[strlen(root) - 1] != '/')
+        root[strlen(root) - 1] = '/';
+
+    memset(tmp_fichier,0,MAX_PATH);
+    strcpy(tmp_fichier,root);
+    strcat(tmp_fichier,newF);
+
+    memset(newF,0,MAX_PATH);
+    strcpy(newF,tmp_fichier);
+
+    return newF;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
