@@ -34,8 +34,13 @@ typedef struct Parametres{
 	int flag_x;	/* flag extraction de l'archive (OK) */
 	int flag_k;	/* flag ne pas remplacer les fichiers existants à l'extraction (OK) */
 	int flag_s;	/* flag liens symboliques à prendre en compte à l'archivage (OK) */
-	int flag_C;	/* flag mettre le répertoire mis en paramètre avec -C comme racine (DOING) */
+	int flag_C;	/* flag mettre le répertoire mis en paramètre avec -C comme racine (OK) */
 	int flag_v;	/* flag verification intégrité de l'archive (OK) */
+
+    /* Extensions */
+
+    int flag_m; /* Pour l'affichage des fichiers avec le md5 si renseigné */
+    int flag_n; /* Pour l'affichage des fichiers qui n'on tpas de md5 renseigné */
 
 	int flag_f; /* flag indiquant le chemin vers un fichier (OK) */
 

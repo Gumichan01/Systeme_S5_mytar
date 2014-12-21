@@ -1359,7 +1359,6 @@ char *remplirChamps(const Entete *info, char *champs)
 
     /* On met la date */
     strftime(buf_time, 20, "%b. %d %H:%M ", localtime(&info->m_time));
-    //strcat(champs,asctime(localtime(&info->m_time)));
     strcat(champs,buf_time);
 
 

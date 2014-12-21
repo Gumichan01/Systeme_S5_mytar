@@ -32,6 +32,9 @@ void init(Parametres *sp)
 		sp->flag_C = 0;
 		sp->flag_v = 0;
 		sp->flag_f = 0;
+
+		sp->flag_m = 0;
+		sp->flag_n = 0;
 	}
 }
 
@@ -203,7 +206,6 @@ int check_param(int argc, char **argv, Parametres *sp)
 				compt += 1;
 			}
 		}
-
 	}
 
 	return compt;

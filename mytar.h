@@ -59,11 +59,11 @@
 
 typedef struct Entete{
 
-	size_t path_length;		/* longueur du fichier avec '\0' */
-	off_t file_length;		/* longueur du contenu */
-	mode_t mode;			/* type et droits */
-	time_t m_time;			/* date dernière modification du fichier */
-	time_t a_time;			/* date dernier accès au fichier */
+	size_t path_length;		        /* longueur du fichier avec '\0' */
+	off_t file_length;		        /* longueur du contenu */
+	mode_t mode;			        /* type et droits */
+	time_t m_time;			        /* date dernière modification du fichier */
+	time_t a_time;			        /* date dernier accès au fichier */
 	char checksum[CHECKSUM_SIZE];	/* checksum du fichier */
 
 }Entete;

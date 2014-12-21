@@ -1,22 +1,26 @@
 Projet Système S5 : mytar
 
-Auteurs : Luxon JEAN-PIERRE
-	  Kahina RAHANI
+Auteurs : Kahina RAHANI & Luxon JEAN-PIERRE
 
 
 Ce projet consiste à créer une implémentation d'un programme d'archivage fonctionnant de manière analogue à tar.
 
 
+Fonctionnalités réalisées : 
 
+	-c : création d'archive
+	-a : ajout de fichiers
+	-d : suppression de fichiers
+	-l : lister les fichiers
+	-x : extraction de l'archive
+	-k : ne pas écraser le contenu existant lors de l'extraction
+	-s : prendre en compte les liens symboliques pour toutes les opérations 
+	-C rep : en ajout et en extraction
+	-v : en création et en extraction 
 
- == Compilation ==
+	Les verrous sont utilisés.
 
-2 possibilités :
+Cas problématiques gérés :
 
-	1 - Avec GCC sans utiliser de makefile de manière explicite
-	2 - Avec un makefile manuel (à venir)
-
-
-1 - Avec GCC sans utiliser de makefile de manière explicite
-
-	-> Faire dans le terminal $ gcc -Wall -pedantic -g *.c
+	- Les chemins absolus sont traités dans tous les cas.
+	- Les chemins contenant des "./" et "../" sont traités proprement.
