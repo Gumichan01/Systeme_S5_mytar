@@ -54,7 +54,7 @@
 #define USR_RW 0600          /* Droit d'écriture sur un fichier */
 #define USR_RWX 0700
 
-#define DEBUG			/* Constante pour le debogage */
+/*#define DEBUG*/			/* Constante pour le debogage */
 
 
 typedef struct Entete{
@@ -71,12 +71,12 @@ typedef struct Entete{
 
 void usage(char *prog);
 
-void ecrireEntete(int archive, Entete *info, char *filename);
+int ecrireEntete(int archive, Entete *info, char *filename);
 
 int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
 
-void archiver(int archive, char *filename,char *root, Parametres *sp);
-void archiver_rep(int archive, char *rep, char *root, Parametres *sp);
+int archiver(int archive, char *filename,char *root, Parametres *sp);
+int archiver_rep(int archive, char *rep, char *root, Parametres *sp);
 
 int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
 
@@ -85,10 +85,9 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 int liste_fichiers(char *archive_file, Parametres *sp);
 
+int ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 
-/* Içi, la liste de toutes les fonctions annexes */
 
-void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 
 /* Fonction qui calcul le md5 du ficheir pris en paramètre*/
 char * md5sum(const char *filename, char *checksum);

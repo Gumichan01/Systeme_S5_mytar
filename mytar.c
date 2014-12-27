@@ -32,19 +32,25 @@ void usage(char * prog)
 
 
 /* Ecrit l'entete du fichier */
-void ecrireEntete(int archive, Entete *info, char *filename)
+int ecrireEntete(int archive, Entete *info, char *filename)
 {
 	if(info != NULL)
 	{
-		write(archive,&info->path_length,sizeof(size_t));	/* ecrire la taille */
-		write(archive,&info->file_length,sizeof(off_t));    /* longueur du contenu */
-		write(archive,&info->mode,sizeof(mode_t));		    /* ecrire le mode */
-		write(archive,&info->m_time,sizeof(time_t));
-		write(archive,&info->a_time,sizeof(time_t));
-		write(archive,&info->checksum,CHECKSUM_SIZE);
+	    if( write(archive,&info->path_length,sizeof(size_t)) != sizeof(size_t)
+            || write(archive,&info->file_length,sizeof(off_t)) != sizeof(size_t)
+            || write(archive,&info->mode,sizeof(mode_t)) != sizeof(mode_t)
+            || write(archive,&info->m_time,sizeof(time_t)) != sizeof(time_t)
+            || write(archive,&info->a_time,sizeof(time_t)) != sizeof(time_t)
+            || write(archive,&info->checksum,CHECKSUM_SIZE) != CHECKSUM_SIZE
+            || write(archive, filename, info->path_length) != info->path_length )
+        {
+            return -1;
+        }
 
-		write(archive, filename, info->path_length);	    /* ecrire le nom du fichier */
+        return 0;
 	}
+
+	return -1;
 }
 
 
@@ -53,7 +59,7 @@ void ecrireEntete(int archive, Entete *info, char *filename)
 /* archive_file : fichier archive; firstPath : position du premier fichier path */
 int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
 {
-	int i;
+	int i, err = 0;
 	int archive;
 	char root[MAX_PATH];
 
@@ -106,7 +112,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 	printf("DEBUG : Lecture du fichier %s\n", argv[i]);
 #endif
 
-		archiver(archive,argv[i],root,sp);
+		err += archiver(archive,argv[i],root,sp);
 	}
 
 #ifdef DEBUG
@@ -120,12 +126,18 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 
 	close(archive);
 
+	if(err)
+	{
+        unlink(archive_file);
+        return -1;
+	}
+
 	return 0;
 }
 
 
 /* archiver un fichier */
-void archiver(int archive, char *filename, char *root, Parametres *sp)
+int archiver(int archive, char *filename, char *root, Parametres *sp)
 {
 
 	int j;
@@ -153,7 +165,7 @@ void archiver(int archive, char *filename, char *root, Parametres *sp)
         if(enleverSlashEtPoints(filename,newF) == NULL)
         {
             fprintf(stderr,"ERREUR : problème interne lié au fichier suivant : %s \n", filename);
-            return;
+            return -1;
         }
 
         if(sp->flag_C)
@@ -196,7 +208,14 @@ void archiver(int archive, char *filename, char *root, Parametres *sp)
 				}
 				else
 				{
-					ecrireEntete(archive,&info,newF);
+					if(ecrireEntete(archive,&info,newF) == -1)
+					{
+#ifdef DEBUG
+	fprintf(stderr,"DEBUG : ERREUR : ecrireEntete dans archiver lien \n");
+#endif
+                        return -1;
+					}
+
 					write(archive,buf,lus);
 				}
 			}
@@ -209,8 +228,11 @@ void archiver(int archive, char *filename, char *root, Parametres *sp)
 		}
 		else if(S_ISDIR(info.mode) > 0) /* Le cas si c'est un répertoire */
 		{
+#ifdef DEBUG
+	printf("DEBUG : INFO :  mode  %s : %o \n",filename,info.mode);
+#endif
 			/* A-t-on les droits de parcours (pour l'accès aux fichiers) et de modification (pour l'extraction) */
-			if((info.mode & USR_RX) != USR_RX || (info.mode & GRP_RX) != GRP_RX || (info.mode & OTH_RX) != OTH_RX)
+			if((info.mode & USR_RX) != USR_RX && (info.mode & GRP_RX) != GRP_RX && (info.mode & OTH_RX) != OTH_RX)
 			{
 				fprintf(stderr,"ATTENTION : %s - Droit non valides sur le fichier \n",filename);
 				/*lseek(archive, debut, SEEK_SET);  Le lseek me parait optionnel */
@@ -228,8 +250,22 @@ void archiver(int archive, char *filename, char *root, Parametres *sp)
                     info.path_length++;
 			    }
 
-				ecrireEntete(archive,&info,newF);
-				archiver_rep(archive,filename,root,sp);
+
+                if(ecrireEntete(archive,&info,newF) == -1)
+                {
+#ifdef DEBUG
+	fprintf(stderr,"DEBUG : ERREUR : ecrireEntete dans archiver rep \n");
+#endif
+                    return -1;
+                }
+
+				if(archiver_rep(archive,filename,root,sp) == -1)
+				{
+#ifdef DEBUG
+	fprintf(stderr,"DEBUG : ERREUR : archivage de %s \n",filename);
+#endif
+                    return -1;
+				}
 			}
 		}
 		else if(S_ISREG(info.mode) > 0)	/* Le cas d'un fichier régulier , on lit son contenu */
@@ -254,7 +290,15 @@ void archiver(int archive, char *filename, char *root, Parametres *sp)
 					}
 				}
 
-				ecrireEntete(archive,&info,newF);
+
+                if(ecrireEntete(archive,&info,newF) == -1)
+                {
+#ifdef DEBUG
+	fprintf(stderr,"DEBUG : ERREUR : ecrireEntete dans archiver fichier \n");
+#endif
+                    close(fdInput);
+                    return -1;
+                }
 
 				for(j = 0 ; j <= info.file_length/BUFSIZE; j++)
 				{
@@ -277,19 +321,20 @@ void archiver(int archive, char *filename, char *root, Parametres *sp)
 		{
 			fprintf(stderr,"Format fichier non valide! \n");
 			lseek(archive, debut, SEEK_SET);
-
 		}
 	}
 
+    return 0;
 }
 
 
 /* archiver un répertoire */
 /* On suppose que la structure est bien passée en parametre */
-void archiver_rep(int archive, char *rep, char *root, Parametres *sp)
+int archiver_rep(int archive, char *rep, char *root, Parametres *sp)
 {
 	struct dirent *sd = NULL;
 	DIR *dir = NULL;
+	int err = 0;
 
   	char nomFichier[MAX_FILE];
 
@@ -320,11 +365,16 @@ void archiver_rep(int archive, char *rep, char *root, Parametres *sp)
 
 			strcat(nomFichier, sd->d_name);
 
-			archiver(archive, nomFichier, root,sp);
+			if(archiver(archive, nomFichier, root,sp) == -1)
+			{
+                err = -1;
+			}
 		}
 
 		closedir(dir);
 	}
+
+	return err;
 }
 
 
@@ -602,7 +652,7 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 {
 
 	int fdArchive;
-	int i;
+	int i, err = 0;
 
 
 	if(sp == NULL)	return -1;
@@ -637,11 +687,11 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
         return -1;
     }
 
-	lseek(fdArchive,0,SEEK_CUR);
+	lseek(fdArchive,0,SEEK_END);
 
-	for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
+	for(i = firstPath; (i< argc && argv[i][0] != '-' ); i++)
 	{
-		archiver(fdArchive, argv[i],NULL, sp);
+		err += archiver(fdArchive, argv[i],NULL, sp);
 	}
 
     if(unlockfile(fdArchive) == -1)
@@ -649,7 +699,13 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
         warn("[%d] Attention : Je n'ai pas pu deverrouiller le fichier %s ",getpid(),archive_file);
     }
 
+
 	close(fdArchive);
+
+	if(err)
+    {
+        return -1;
+    }
 
 	return 0;
 
@@ -663,6 +719,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	int fdArchive, fdFichier;
 	off_t taille_archive;
 	int i,j, lus;
+	int err = 0;
 
 	char tmpFichier[32];
 
@@ -743,13 +800,17 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 		/* On lit l'entete */
 
-		read(fdArchive,&info.path_length,sizeof(info.path_length));
-		read(fdArchive,&info.file_length,sizeof(off_t));
-		read(fdArchive,&info.mode,sizeof(mode_t));
-		read(fdArchive,&info.m_time,sizeof(time_t));
-		read(fdArchive,&info.a_time,sizeof(time_t));
-		read(fdArchive,&info.checksum,CHECKSUM_SIZE);
-		read(fdArchive, filename, info.path_length);	/* lire le nom du fichier */
+        if( read(fdArchive,&info.path_length,sizeof(info.path_length)) != sizeof(info.path_length)
+            || read(fdArchive,&info.file_length,sizeof(off_t)) != sizeof(off_t)
+            || read(fdArchive,&info.mode,sizeof(mode_t)) != sizeof(mode_t)
+            || read(fdArchive,&info.m_time,sizeof(time_t)) != sizeof(time_t)
+            || read(fdArchive,&info.a_time,sizeof(time_t)) != sizeof(time_t)
+            || read(fdArchive,&info.checksum,CHECKSUM_SIZE) != CHECKSUM_SIZE
+            || read(fdArchive, filename, info.path_length) != info.path_length )
+        {
+            err = -1;
+            break;
+        }
 
 		filename[info.path_length] = '\0';
 
@@ -786,7 +847,12 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 #endif
                     /* L'option '-s' n'est pas actif -> le lien doit être ignoré
                         dans la suppression (pas de suppression) */
-                    ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
+                    if(ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE) == -1)
+                    {
+                        err =-1;
+                        break;
+                    }
+
                     continue;
                 }
                 else
@@ -799,7 +865,9 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
                 }
 
             }
-            else{
+            else
+            {
+
 #ifdef DEBUG
 	printf("DEBUG : %s a été supprimé \n",filename);
 #endif
@@ -807,8 +875,13 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
             }
         }
         else
-            ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE);
-
+        {
+            if(ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE))
+            {
+                err = -1;
+                break;
+            }
+        }
 	}
 
     unlockfile(fdFichier);
@@ -817,6 +890,14 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	close(fdFichier);
 	close(fdArchive);
 
+    if(err)
+    {
+#ifdef DEBUG
+	printf("DEBUG : ERREUR :  problème lors de la sauvegarde des fichiers \n");
+#endif
+        unlink(tmpFichier);
+        return -1;
+    }
 
 	if(stat(tmpFichier, &s) == -1)
 	{
@@ -882,13 +963,13 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 
 /*  option "-l" */
-int liste_fichiers(char *archive_file, Parametres *sp){
-
+int liste_fichiers(char *archive_file, Parametres *sp)
+{
 
     Entete info;
     struct stat s;
 
-	int archive;
+	int archive, err = 0;
     off_t taille_archive;
 
     char filename[MAX_PATH];
@@ -930,13 +1011,17 @@ int liste_fichiers(char *archive_file, Parametres *sp){
 	{
 		/* On lit l'entete */
 
-		read(archive,&info.path_length,sizeof(info.path_length));
-		read(archive,&info.file_length,sizeof(off_t));
-		read(archive,&info.mode,sizeof(mode_t));
-		read(archive,&info.m_time,sizeof(time_t));
-		read(archive,&info.a_time,sizeof(time_t));
-		read(archive,&info.checksum,CHECKSUM_SIZE);
-		read(archive,filename, info.path_length);
+		if( read(archive,&info.path_length,sizeof(info.path_length)) != sizeof(info.path_length)
+            || read(archive,&info.file_length,sizeof(off_t)) != sizeof(off_t)
+            || read(archive,&info.mode,sizeof(mode_t)) != sizeof(mode_t)
+            || read(archive,&info.m_time,sizeof(time_t)) != sizeof(time_t)
+            || read(archive,&info.a_time,sizeof(time_t)) != sizeof(time_t)
+            || read(archive,&info.checksum,CHECKSUM_SIZE) != CHECKSUM_SIZE
+            || read(archive,filename, info.path_length) != info.path_length )
+        {
+            err = -1;
+            break;
+        }
 
 		info.checksum[CHECKSUM_SIZE] = '\0';
 		filename[info.path_length] = '\0';
@@ -976,35 +1061,56 @@ int liste_fichiers(char *archive_file, Parametres *sp){
 
     close(archive);
 
+    if(err == -1)
+    {
+        return -1;
+    }
+
 	return 0;
 }
 
 
 /* Ecrire le contenu d'un fichier dans un autre (utilisée dans supprimer_fichiers)*/
-void ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize)
+int ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize)
 {
 	int j, lus;
+	int err = 0;
 
-	if(info == NULL || filename == NULL || buf == NULL) return;
+	if(info == NULL || filename == NULL || buf == NULL) return -1;
 
-	write(fdFichier,&info->path_length,sizeof(info->path_length));
-	write(fdFichier,&info->file_length,sizeof(off_t));
-	write(fdFichier,&info->mode,sizeof(mode_t));
-	write(fdFichier,&info->m_time,sizeof(time_t));
-	write(fdFichier,&info->a_time,sizeof(time_t));
-	write(fdFichier,info->checksum,CHECKSUM_SIZE);	/* @bug sur cette ecriture qui corrompait le fichier (Reparé)*/
-	write(fdFichier,filename, info->path_length);
+
+    if(ecrireEntete(fdFichier,info,filename) == -1)
+    {
+#ifdef DEBUG
+        printf("ERREUR : ecriture entete fichier %s \n", filename);
+#endif
+        return -1;
+    }
 
 
 	for(j = 0 ; j < info->file_length/bufsize; j++)
 	{
 		lus = read(fdArchive,buf, bufsize);
-		write(fdFichier,buf,lus);
+
+        if(lus > 0)
+            write(fdFichier,buf,lus);
+        else
+        {
+#ifdef DEBUG
+            printf("ERREUR : lecture contenu fichier %s \n", filename);
+#endif
+            err = -1;
+            break;
+        }
 	}
 
-	lus = read(fdArchive,buf, info->file_length % bufsize);
-	write(fdFichier,buf,lus);
+    if(err == 0)
+    {
+        lus = read(fdArchive,buf, info->file_length % bufsize);
+        write(fdFichier,buf,lus);
+	}
 
+	return 0;
 }
 
 /* Calcule le md5 du fichier */
@@ -1059,6 +1165,7 @@ char * md5sum(const char *filename, char *checksum)
 			return NULL;
 		}
 
+        close(tube[0]);
 
 		if(lus < CHECKSUM_SIZE)
 		{
