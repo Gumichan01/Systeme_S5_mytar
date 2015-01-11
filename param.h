@@ -23,7 +23,7 @@
 
 #define MAX_FILE 256	/* Taille max du nom du fichier */
 
-typedef struct Parametres{
+typedef struct Option{
 
 	int flag_h; 	/* flag personnalisé pour l'affichage de l'aide */
 
@@ -44,17 +44,16 @@ typedef struct Parametres{
 
 	int flag_f; /* flag indiquant le chemin vers un fichier (OK) */
 
-}Parametres;
+}Option;
 
-/* TODO changer le nom Parametres en Option */
 
 /*Mets tous les champs à zero*/
-void init(Parametres *sp);
+void init(Option *sp);
 
 
 /* Fait une vérification des paramètres du programme
    renvoie un nombre de paramètre >= 0 si tout s'est bien passé, -1 sinon */
-int check_param(int argc, char **argv, Parametres *sp);
+int check_param(int argc, char **argv, Option *sp);
 
 /* Stocke le nom du fichier archive dans buf et renvoie l'adresse de buf */
 char * getArchive(char *buf,int argc,char **argv);

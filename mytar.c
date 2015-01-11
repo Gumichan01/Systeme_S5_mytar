@@ -67,7 +67,7 @@ int ecrireEntete(int archive, Entete *info, char *filename)
 
 /* creation de l'archive */
 /* archive_file : fichier archive; firstPath : position du premier fichier path */
-int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
+int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp)
 {
 	int i, err = 0;
 	int archive;
@@ -147,7 +147,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Param
 
 
 /* archiver un fichier */
-int archiver(int archive, char *filename, char *root, Parametres *sp)
+int archiver(int archive, char *filename, char *root, Option *sp)
 {
 
 	int j;
@@ -340,7 +340,7 @@ int archiver(int archive, char *filename, char *root, Parametres *sp)
 
 /* archiver un répertoire */
 /* On suppose que la structure est bien passée en parametre */
-int archiver_rep(int archive, char *rep, char *root, Parametres *sp)
+int archiver_rep(int archive, char *rep, char *root, Option *sp)
 {
 	struct dirent *sd = NULL;
 	DIR *dir = NULL;
@@ -389,7 +389,7 @@ int archiver_rep(int archive, char *rep, char *root, Parametres *sp)
 
 
 /* extraction de l'archive */
-int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
+int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp)
 {
 
 	struct stat s,tmp;
@@ -428,7 +428,6 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 		return -1;
 	}
 
-    getRepRoot(root,argc,argv);
 
 	taille_archive = s.st_size;
 
@@ -445,6 +444,12 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
         return -1;
     }
 
+    if(sp->flag_C)
+    {
+        if(getRepRoot(root,argc,argv) == NULL)
+            fprintf(stderr,"ATTENTION : flag '-C' detecté mais aucun fichier root indiqué\n");
+    }
+
 	/* Tant qu'on n'est pas à la fin du fichier */
 	while(lseek(archive,0,SEEK_CUR) != taille_archive)
 	{
@@ -452,27 +457,24 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 
         extraire = 0;
 
-		read(archive,&info.path_length,sizeof(info.path_length));
-		read(archive,&info.file_length,sizeof(off_t));
-		read(archive,&info.mode,sizeof(mode_t));
-		read(archive,&info.m_time,sizeof(time_t));
-		read(archive,&info.a_time,sizeof(time_t));
-		read(archive,&info.checksum,CHECKSUM_SIZE);
-		read(archive,filename, info.path_length);	/* lire le nom du fichier */
+		if(read(archive,&info.path_length,sizeof(info.path_length)) != sizeof(info.path_length)
+            || read(archive,&info.file_length,sizeof(off_t)) != sizeof(off_t)
+            || read(archive,&info.mode,sizeof(mode_t)) != sizeof(mode_t)
+            || read(archive,&info.m_time,sizeof(time_t)) != sizeof(time_t)
+            || read(archive,&info.a_time,sizeof(time_t)) != sizeof(time_t)
+            || read(archive,&info.checksum,CHECKSUM_SIZE) != CHECKSUM_SIZE
+            || read(archive,filename, info.path_length) != info.path_length )
+        {
+            err = -1;
+            break;
+        }
 
 		info.checksum[CHECKSUM_SIZE] = '\0';
 		filename[info.path_length] = '\0';
 
-        if(sp->flag_C)
-        {
-            if(strncmp(root,filename,strlen(root)))
-            {
-                if(catRoot(root,filename) == NULL)
-                {
-                    fprintf(stderr,"Impossible de mettre %s dans l'arborescence %s",filename, root);
-                }
-            }
-        }
+#ifdef DEBUG
+	printf("DEBUG : Analyse de %s \n",filename);
+#endif
 
         /* Y a-t-il des fichiers spécifiques à extraire ? */
         if(firstPath != -1)
@@ -498,10 +500,24 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
             }
         }
 
-
 #ifdef DEBUG
 	printf("DEBUG : Extraction de %s hors de %s \n",filename, archive_file);
 #endif
+
+        if(sp->flag_C)
+        {
+            if(root != NULL || strncmp(root,filename,strlen(root)))
+            {
+                if(catRoot(root,filename) == NULL)
+                {
+                    fprintf(stderr,"Impossible de mettre %s dans l'arborescence %s",filename, root);
+                }
+            }
+#ifdef DEBUG
+	printf("DEBUG : Extraction vers %s -> %s \n",root,filename);
+#endif
+        }
+
 
 		/* Si c'est un lien, on met juste le nom du fichier pointé par le lien */
 		if(S_ISLNK(info.mode) > 0)
@@ -531,13 +547,12 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 			if(sp->flag_s)
 			{
 			    /* Ah, donc on le prend bien en compte */
-
                 /* On test si le fichier est dans une arborescence */
                 if(getArborescence(filename,arbo) != NULL)
                 {
                     if(mkdirP(arbo) == -1)
                     {
-                        fprintf(stderr,"Erreur lors de la création de l'arborescence %s\n",arbo);
+                        fprintf(stderr,"ATTENTION : Erreur lors de la création de l'arborescence %s\n",arbo);
                         lseek(archive,info.file_length,SEEK_CUR);
                         continue;
                     }
@@ -545,6 +560,9 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 
 				symlink(buf,filename);	/* On crée le lien filename sur buf */
 			}
+			else
+                printf("ATTENTION : %s est un lien symbolique, il sera donc ignoré lors de l'extraction\n",filename);
+
 			continue;
 		}
 
@@ -652,12 +670,12 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 	printf("DEBUG : Fin de l'extraction \n");
 #endif
 
-	return 0;
+	return err;
 }
 
 
 /* option "-a"*/
-int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
+int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Option *sp)
 {
 
 	int fdArchive;
@@ -722,7 +740,7 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Par
 
 
 /* option "-d"*/
-int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp)
+int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Option *sp)
 {
 
 	int fdArchive, fdFichier;
@@ -850,9 +868,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
                 /* C'est un lien */
                 if(!sp->flag_s)
                 {
-#ifdef DEBUG
-	printf("DEBUG : '-s' absent, pas de suppression \n");
-#endif
+                    printf("INFO: %s est un lien symbolique, il ne sera donc pas supprimé \n",filename);
                     /* L'option '-s' n'est pas actif -> le lien doit être ignoré
                         dans la suppression (pas de suppression) */
                     if(ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE) == -1)
@@ -971,7 +987,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 
 /*  option "-l" */
-int liste_fichiers(char *archive_file, Parametres *sp, int argc, char **argv)
+int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
 {
 
     Entete info;

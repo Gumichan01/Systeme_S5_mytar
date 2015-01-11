@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 	int nb_options;
 	char archive_file[MAX_FILE];
 	int param = 0; /* on met param à 0 mais ça peut changer */
-	Parametres sp;
+	Option sp;
 
 	init(&sp);	/* On met tous les champs à zero */
 
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 
 		if(extraire_archive(archive_file,param,argc,argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : impossible d'extraire l'archive \n",argv[0]);
+			fprintf(stderr,"%s : impossible d'extraire l'archive, le fichier est peut-être invalide ! \n",argv[0]);
 			return EXIT_FAILURE;
 		}
 

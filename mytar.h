@@ -68,17 +68,17 @@ void usage(char *prog);
 
 int ecrireEntete(int archive, Entete *info, char *filename);
 
-int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
+int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
-int archiver(int archive, char *filename,char *root, Parametres *sp);
-int archiver_rep(int archive, char *rep, char *root, Parametres *sp);
+int archiver(int archive, char *filename,char *root, Option *sp);
+int archiver_rep(int archive, char *rep, char *root, Option *sp);
 
-int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
+int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
-int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);
-int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
+int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Option *sp);
+int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
-int liste_fichiers(char *archive_file, Parametres *sp, int argc, char **argv);
+int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv);
 
 int ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 

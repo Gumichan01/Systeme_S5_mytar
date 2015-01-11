@@ -17,7 +17,7 @@
 #include "param.h"
 
 /*  On met tous les champs à 0 */
-void init(Parametres *sp)
+void init(Option *sp)
 {
 	if(sp != NULL)
 	{
@@ -41,7 +41,7 @@ void init(Parametres *sp)
 
 /*  Fait une vérification des paramètres du programme */
 /*  renvoie un nombre de paramètre >= 0 si tout s'est bien passé, -1 sinon */
-int check_param(int argc, char **argv, Parametres *sp)
+int check_param(int argc, char **argv, Option *sp)
 {
 
 	int compt = 0;
