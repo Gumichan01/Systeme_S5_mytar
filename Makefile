@@ -35,8 +35,10 @@ mytar.o : mytar.c
 main.o : main.c
 	$(CC) -o $@ -c $^ $(CFLAGS)
 
+clean :
+	rm -rf *.o
 
-cleanall:
+cleanall :
 
 	rm -rf *.o $(EXEC)
 

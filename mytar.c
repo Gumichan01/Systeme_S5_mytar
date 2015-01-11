@@ -18,13 +18,24 @@
 /* usage */
 void usage(char * prog)
 {
-	/* TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur : void usage(char * prog) */
-	/* TODO par exemple lister tous les usages possibles du programme : void usage(char * prog) */
 
 	if(prog != NULL)
 	{
-		fprintf(stderr,"usage : %s [-c|a|d|l|x|k|s|C <rep>|v] -f <archive> <noms_fichiers> \n", prog);
-		/*fprintf(stderr,"\t%s [-xf] <archive> \n", prog); */
+		printf("Utilisation : \n");
+		printf("%s -c -f <nom_archive>.mtr <path1>...<pathn> : archiver les fichiers path dans le fichier archive .mtr\n",prog);
+		printf("%s -a <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : ajouter un fichier à l'archive\n",prog);
+		printf("%s -d <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : supprimer un/les fichier(s) path de l'archive\n",prog);
+		printf("%s -x <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : extraire un/les fichier(s) path de l'archive\n",prog);
+		printf("%s -l <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : lister les fichiers archivés \n",prog);
+
+		printf("\nRemarque 1 : pour les options '-x' et '-l', si les path ne sont pas renseignés, tous les fichiers sont traités \n");
+		printf("\nOptions auxiliaires : \n");
+
+		printf(" -k : à l'extraction, n'écrase pas les fichiers existants ayant le même nom\n");
+		printf(" -s : prendre en compte les liens symboliques\n");
+		printf(" -C <rep> : à la création, défitint rep comme racine des fichiers archivés. A l'extraction, tous les fichiers sont extraits dans <rep>\n");
+		printf(" -v : à la création et l'ajout, calcule le md5sum du fichier à archiver. A l'extraction, compare md5 du fichier extrait à la valeur renseignée\n");
+
 	}
 	exit(EXIT_FAILURE);
 }
@@ -318,7 +329,7 @@ int archiver(int archive, char *filename, char *root, Parametres *sp)
 		}
 		else /* le cas si le fichier est un tube ou socket ...etc... */
 		{
-			fprintf(stderr,"Format fichier non valide! \n");
+			fprintf(stderr,"ATTENTION : Format du fichier %s non valide ! \n",filename);
 			lseek(archive, debut, SEEK_SET);
 		}
 	}
