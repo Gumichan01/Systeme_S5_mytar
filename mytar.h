@@ -28,19 +28,14 @@
 #include "mytar_posix_lib.h"
 
 #include "lock_lib.h"
+#include "annexe.h"
 #include "param.h"
 
-#ifndef CHECKSUM_SIZE
-#define CHECKSUM_SIZE 32	/* Constante definissant la taille du checksum */
-#endif
 
 #ifndef BUFSIZE
 #define BUFSIZE 1024		/* Constante definissant la taille du buffer */
 #endif
 
-#ifndef MAX_PATH
-#define MAX_PATH 256		/* Constante definissant la longueur max du nom du fichier */
-#endif
 
 #ifndef CHAMPSMAX
 #define CHAMPSMAX 32		/* Constante definissant la longueur des buffer de remplirChamps */
@@ -83,32 +78,13 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Pa
 int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Parametres *sp);
 int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Parametres *sp);
 
-int liste_fichiers(char *archive_file, Parametres *sp);
+int liste_fichiers(char *archive_file, Parametres *sp, int argc, char **argv);
 
 int ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
-
-
-
-/* Fonction qui calcul le md5 du ficheir pris en paramètre*/
-char * md5sum(const char *filename, char *checksum);
-
-/* Verifie si le md5 d'un fichier est renseigné*/
-int checksumRenseigne(char * checksum);
-
-/* Supprimer les "../" , "./" || le '/' de début de chaine */
-char *enleverSlashEtPoints(char *oldchaine, char *newchaine);
-
-/* Créer une arborescence à partir du chemin passé en paramètre*/
-int mkdirP(char *arborescence);
-
-/*  Permet d'obtenir l'arborescence à laquelle appartient
-    un fichier tel que ce fichier ne soit pas un répertoire */
-char *getArborescence(char *filename, char *newA);
 
 /* Rempli le champs d'information à partir des informations du fichier*/
 char *remplirChamps(const Entete *info, char *champs);
 
-char *catRoot(char *rootRep,char *newF);
 
 #endif /* MYTAR_INCLUDED_H */
 

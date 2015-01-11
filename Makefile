@@ -12,11 +12,15 @@ all: $(EXEC)
 
 
 
-$(EXEC) : lock_lib.o param.o mytar.o main.o
+$(EXEC) : lock_lib.o annexe.o param.o mytar.o main.o
 	$(CC) -o $(EXEC) $^ $(LFLAGS)
 
 
 lock_lib.o : lock_lib.c
+	$(CC) -o $@ -c $^ $(CFLAGS)
+
+
+annexe.o : annexe.c
 	$(CC) -o $@ -c $^ $(CFLAGS)
 
 

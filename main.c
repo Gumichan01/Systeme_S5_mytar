@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_l actif -> liste des fichiers dans archive \n");
 #endif
 
-		if(liste_fichiers(archive_file, &sp) == -1)
+		if(liste_fichiers(archive_file, &sp,argc,argv) == -1)
 		{
 			fprintf(stderr,"%s : Problème lors de l'affichage des fichiers situés dans l'archive %s \n",argv[0],archive_file);
 			return EXIT_FAILURE;

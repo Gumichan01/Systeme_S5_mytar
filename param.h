@@ -6,7 +6,7 @@
 *
 *	@brief Fichier bibliothèque param.h
 *
-*	Il gère les paramètre du programme
+*	Il gère les paramètres du programme
 *
 *	@author Luxon JEAN-PIERRE, Kahina RAHANI
 *	Licence 3 Informatique
