@@ -46,6 +46,7 @@ typedef struct Parametres{
 
 }Parametres;
 
+/* TODO changer le nom Parametres en Option */
 
 /*Mets tous les champs à zero*/
 void init(Parametres *sp);

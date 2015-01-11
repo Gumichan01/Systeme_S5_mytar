@@ -18,7 +18,7 @@
 
 int main(int argc, char **argv)
 {
-	int nb_param;
+	int nb_options;
 	char archive_file[MAX_FILE];
 	int param = 0; /* on met param à 0 mais ça peut changer */
 	Parametres sp;
@@ -31,18 +31,18 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if( ( nb_param = check_param(argc,argv,&sp)) == -1)
+	if( ( nb_options = check_param(argc,argv,&sp)) == -1)
 	{
 		fprintf(stderr," %s : Problème avec les options du programme\n %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
 		return EXIT_FAILURE;
 	}
 
 #ifdef DEBUG
-	printf("DEBUG : Il y a %d paramètres actifs\n", nb_param);
+	printf("DEBUG : Il y a %d paramètres actifs\n", nb_options);
 #endif
 
-	/*Aucun parametre ? option -h actif ?*/
-	if(nb_param == 0 || sp.flag_h)
+	/*Aucune option ? option -h actif ?*/
+	if(nb_options== 0 || sp.flag_h)
 	{	/* On n'a aucun arametre ou l'option -h est active */
 		usage(argv[0]);
 	}
@@ -63,6 +63,13 @@ int main(int argc, char **argv)
         (nom de l'archive, repertoire racine si '-C' actif) */
 	getArchive(archive_file,argc,argv);
 	param = getFirstPath(argc,argv);
+
+
+    if(strstr(archive_file,".mtr") == NULL)
+    {
+        fprintf(stderr,"%s : je refuse de traiter un fichier non valide. '%s' n'est pas un fichier '.mtr' \n",argv[0], archive_file);
+        return EXIT_FAILURE;
+    }
 
 
 #ifdef DEBUG
@@ -135,6 +142,11 @@ int main(int argc, char **argv)
 			fprintf(stderr,"%s : Problème lors de l'affichage des fichiers situés dans l'archive %s \n",argv[0],archive_file);
 			return EXIT_FAILURE;
 		}
+	}
+	else
+	{
+        printf("C'est bien beau de me donner '%s', mais je ne sais pas quoi faire avec !!\n", archive_file);
+        printf("RYFM -> %s -h\n",argv[0]);
 	}
 
 	return EXIT_SUCCESS;
