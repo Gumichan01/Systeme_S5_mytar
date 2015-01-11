@@ -194,7 +194,7 @@ int archiver(int archive, char *filename, char *root, Option *sp)
 #endif
 
 		/* On récupère les informations du fichier puis on les mets dans l'entete */
-		info.path_length = strlen(newF);
+		info.path_length = strlen(newF) + 1;
 		info.file_length = s.st_size;
 		info.mode = s.st_mode;
 		info.m_time = s.st_mtime;
@@ -252,8 +252,7 @@ int archiver(int archive, char *filename, char *root, Option *sp)
 			    info.file_length = 0;
 
                 /*  Dans le cas où on a un dossier, on s'assure d'avoir le '/'
-                    quoiqu'il arrive. C'est une politique qu'on a choisit pour
-                    notre programme */
+                    quoiqu'il arrive.*/
 			    if(newF[info.path_length -1] != '/' && info.path_length < MAX_PATH)
 			    {
                     strcat(newF, "/");
@@ -470,7 +469,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
         }
 
 		info.checksum[CHECKSUM_SIZE] = '\0';
-		filename[info.path_length] = '\0';
+		/*filename[info.path_length] = '\0';*/
 
 #ifdef DEBUG
 	printf("DEBUG : Analyse de %s \n",filename);
@@ -839,7 +838,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
             break;
         }
 
-		filename[info.path_length] = '\0';
+		/*filename[info.path_length] = '\0';*/
 
         /* On ne veut supprimer que les fichiers en paramètre */
         for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
@@ -1053,7 +1052,7 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
         }
 
 		info.checksum[CHECKSUM_SIZE] = '\0';
-		filename[info.path_length] = '\0';
+		/*filename[info.path_length] = '\0';*/
 
         if(firstPath != -1)
         {
@@ -1101,8 +1100,12 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
             }
             else
             {
-                strcat(champs,filename);
-                printf("%s \n",champs);
+                if(!S_ISLNK(info.mode))
+                {
+                    strcat(champs,filename);
+                    printf("%s \n",champs);
+                }
+
                 lseek(archive,info.file_length,SEEK_CUR);
             }
         }

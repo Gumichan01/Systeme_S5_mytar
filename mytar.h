@@ -47,7 +47,7 @@
 
 
 #define USR_RW 0600          /* Droit d'écriture sur un fichier */
-#define USR_RWX 0700
+#define USR_RWX 0700         /* Droit de lecture et d'écriture */
 
 /*#define DEBUG*/			/* Constante pour le debogage */
 
@@ -70,16 +70,22 @@ int ecrireEntete(int archive, Entete *info, char *filename);
 
 int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
-int archiver(int archive, char *filename,char *root, Option *sp);
-int archiver_rep(int archive, char *rep, char *root, Option *sp);
+int archiver(int archive, char *filename,char *root, Option *sp);   /* Archiver un fichier */
+int archiver_rep(int archive, char *rep, char *root, Option *sp);   /* Archiver une arborescence */
 
+/* Fait l'extraction de l'archive */
 int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
+/* Ajoute un ou plusieurs fichiers dans l'archive */
 int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Option *sp);
+
+/* Supprime les fichiers à supprimer */
 int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
+/* Affiche la liste des fichiers */
 int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv);
 
+/* Ecrire le contenu d'un fichier dans un autre*/
 int ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 
 /* Rempli le champs d'information à partir des informations du fichier*/
