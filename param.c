@@ -34,7 +34,7 @@ void init(Option *sp)
 		sp->flag_f = 0;
 
 		sp->flag_m = 0;
-		sp->flag_n = 0;
+		sp->flag_z = 0;
 	}
 }
 
@@ -203,6 +203,33 @@ int check_param(int argc, char **argv, Option *sp)
 			else
 			{
 				sp->flag_f = 1;
+				compt += 1;
+			}
+		}
+
+		if(!strcmp(argv[i],"-m"))
+		{
+			if(sp->flag_m)
+			{
+
+				return -1;
+			}
+			else
+			{
+				sp->flag_m = 1;
+				compt += 1;
+			}
+		}
+
+		if(!strcmp(argv[i],"-z"))
+		{
+			if(sp->flag_z)
+			{
+				return -1;
+			}
+			else
+			{
+				sp->flag_z = 1;
 				compt += 1;
 			}
 		}

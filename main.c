@@ -20,7 +20,9 @@ int main(int argc, char **argv)
 {
 	int nb_options;
 	char archive_file[MAX_FILE];
-	int param = 0; /* on met param à 0 mais ça peut changer */
+	char archive_gz[MAX_FILE];  /* Archive après décompression */
+	int param = 0;              /* on met param à 0 mais ça peut changer */
+	int retval;
 	Option sp;
 
 	init(&sp);	/* On met tous les champs à zero */
@@ -90,19 +92,55 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
+		if(sp.flag_z)
+		{
+		    if(compresser(archive_file) == -1)
+		    {
+		        unlink(archive_file);
+		        return EXIT_FAILURE;
+		    }
+		}
+
 	}
 	else if(sp.flag_x)
 	{
 #ifdef DEBUG
 		printf("DEBUG : sp.flag_x actif -> extraction archive \n");
 #endif
+        /* Si on a un fichier compresé, on le décompresse d'abord*/
+        if(sp.flag_z && (strstr(archive_file,".gz") != NULL))
+        {
+            memset(archive_gz,0,MAX_FILE);
+            sprintf(archive_gz,".%d-%s",getpid(),archive_file);
 
-		if(extraire_archive(archive_file,param,argc,argv,&sp) == -1)
-		{
-			fprintf(stderr,"%s : impossible d'extraire l'archive, le fichier est peut-être invalide ! \n",argv[0]);
-			return EXIT_FAILURE;
-		}
+            /*  On copie le contenu du fichier cible dans archive_gz
+                Car on ne doit pas modifier le fichier existant */
 
+            if(copy(archive_gz,archive_file) == -1)
+                    return EXIT_FAILURE;
+
+            strncpy(archive_file,archive_gz,strlen(archive_gz) - 3);
+
+            if(decompresser(archive_gz) == -1)
+            {
+                    fprintf(stderr,"%s : impossible de décompresser l'archive, fichier invalide ! \n",argv[0]);
+                    unlink(archive_gz);
+                    return EXIT_FAILURE;
+            }
+
+            retval = extraire_archive(archive_file,param,argc,argv,&sp);
+
+            unlink(archive_gz);
+            unlink(archive_file);
+        }
+        else
+            retval = extraire_archive(archive_file,param,argc,argv,&sp);
+
+        if(retval == -1)
+        {
+            fprintf(stderr,"%s : impossible d'extraire l'archive, fichier invalide ! \n",argv[0]);
+            return EXIT_FAILURE;
+        }
 
 	}
 	else if(sp.flag_a)

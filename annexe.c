@@ -324,3 +324,150 @@ char *catRoot(char *rootRep,char *newF)
     return newF;
 }
 
+
+
+
+int compresser(char *archive_file)
+{
+	pid_t p;
+	int status;
+	char cmd[] = "gzip";
+
+	if(archive_file == NULL)
+		return -1;	/* Les paramètres ne sont pas valides, on ne va pas plus loin, on renvoie NULL */
+
+	p = fork();
+
+	if(p == 0)
+	{
+
+		execlp(cmd,cmd,archive_file, NULL);
+
+		perror("Erreur lors de l'execution de gzip ");
+
+		exit(-1);
+
+	}
+	else if(p > 0)
+	{
+
+		wait(&status);
+
+		if(WIFEXITED(status))
+		{
+			/* Tout s'est bien passé */
+			return WEXITSTATUS(status);
+		}
+		else
+            return -1;
+
+	}
+	else
+	{
+		fprintf(stderr,"ERREUR : gzip, execution de la commande impossible\n");
+		return -1;	/* La création du fork a echoué, on ne peut rien faire, retourne -1*/
+	}
+
+}
+
+
+int decompresser(char *compressed_file)
+{
+	pid_t p;
+	int status;
+	char cmd[] = "gzip";
+
+	if(compressed_file == NULL)
+		return -1;	/* Les paramètres ne sont pas valides, on ne va pas plus loin, on renvoie NULL */
+
+	p = fork();
+
+	if(p == 0)
+	{
+
+		execlp(cmd,cmd,"-d",compressed_file, NULL);
+
+		perror("Erreur lors de l'execution de gzip ");
+
+		exit(-1);
+
+	}
+	else if(p > 0)
+	{
+
+		wait(&status);
+
+		if(WIFEXITED(status))
+		{
+			/* Tout s'est bien passé */
+			return WEXITSTATUS(status);
+		}
+		else
+            return -1;
+
+	}
+	else
+	{
+		fprintf(stderr,"ERREUR : gzip, execution de la commande impossible\n");
+		return -1;	/* La création du fork a echoué, on ne peut rien faire, retourne -1*/
+	}
+}
+
+/* Copie un ficheir dans un autre */
+int copy(char *dest, char *src)
+{
+	pid_t p;
+	int status;
+	char cmd[] = "cp";
+
+	if(dest == NULL || src == NULL)
+		return -1;	/* Les paramètres ne sont pas valides, on ne va pas plus loin, on renvoie NULL */
+
+	p = fork();
+
+	if(p == 0)
+	{
+
+		execlp(cmd,cmd,src,dest, NULL);
+
+		perror("Erreur lors de l'execution de cp ");
+
+		exit(-1);
+
+	}
+	else if(p > 0)
+	{
+
+		wait(&status);
+
+		if(WIFEXITED(status))
+		{
+			/* Tout s'est bien passé */
+			return WEXITSTATUS(status);
+		}
+		else
+            return -1;
+
+	}
+	else
+	{
+		fprintf(stderr,"ERREUR : cp : execution de la commande impossible\n");
+		return -1;	/* La création du fork a echoué, on ne peut rien faire, retourne -1*/
+	}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -68,27 +68,28 @@ void usage(char *prog);
 
 int ecrireEntete(int archive, Entete *info, char *filename);
 
+/* (option '-c') */
 int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
 int archiver(int archive, char *filename,char *root, Option *sp);   /* Archiver un fichier */
 int archiver_rep(int archive, char *rep, char *root, Option *sp);   /* Archiver une arborescence */
 
-/* Fait l'extraction de l'archive */
+/* Fait l'extraction de l'archive (option '-x') */
 int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
-/* Ajoute un ou plusieurs fichiers dans l'archive */
+/* Ajoute un ou plusieurs fichiers dans l'archive (option '-a') */
 int ajouter_fichier(char *archive_file, int firstPath, int argc, char **argv, Option *sp);
 
-/* Supprime les fichiers à supprimer */
+/* Supprime les fichiers à supprimer (option '-d') */
 int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, Option *sp);
 
-/* Affiche la liste des fichiers */
+/* Affiche la liste des fichiers (option '-l') */
 int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv);
 
-/* Ecrire le contenu d'un fichier dans un autre*/
+/* Ecrire le contenu d'un fichier dans un autre */
 int ecrire_fichier_sauvegarde(int fdArchive,int fdFichier, Entete *info,char *filename, char *buf, int bufsize);
 
-/* Rempli le champs d'information à partir des informations du fichier*/
+/* Rempli le champs d'information à partir des informations du fichier */
 char *remplirChamps(const Entete *info, char *champs);
 
 

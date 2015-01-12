@@ -20,6 +20,11 @@ Fonctionnalités réalisées :
 
 	Les verrous sont utilisés.
 
+Extensions : 
+
+	-m : affiche le md5 de chaque fichier (à utiliser avec l'option '-l')
+	-z : compresse et décompresse un fichier au format <nom>.mtr.gz (création + extraction)
+
 Cas problématiques gérés :
 
 	- Les chemins absolus sont traités dans tous les cas.

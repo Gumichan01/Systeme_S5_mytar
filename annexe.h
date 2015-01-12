@@ -46,6 +46,28 @@ char *getArborescence(char *filename, char *newA);
 
 char *catRoot(char *rootRep,char *newF);
 
+/* Compresser le fichier avec gzip */
+int compresser(char *archive_file);
+
+/* Décompresser le fichier avec gzip */
+int decompresser(char *compressed_file);
+
+/* Copie un ficheir dans un autre */
+int copy(char *dest, char *src);
 
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+

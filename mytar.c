@@ -65,7 +65,7 @@ int ecrireEntete(int archive, Entete *info, char *filename)
 
 
 
-/* creation de l'archive */
+/* creation de l'archive "option -c" */
 /* archive_file : fichier archive; firstPath : position du premier fichier path */
 int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp)
 {
@@ -387,7 +387,7 @@ int archiver_rep(int archive, char *rep, char *root, Option *sp)
 }
 
 
-/* extraction de l'archive */
+/* extraction de l'archive "option -x" */
 int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Option *sp)
 {
 
@@ -552,7 +552,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
                     if(mkdirP(arbo) == -1)
                     {
                         fprintf(stderr,"ATTENTION : Erreur lors de la création de l'arborescence %s\n",arbo);
-                        lseek(archive,info.file_length,SEEK_CUR);
+                        /*lseek(archive,info.file_length,SEEK_CUR);*/
                         continue;
                     }
                 }
@@ -587,7 +587,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
 			continue;
 		}
 
-
+        /* Qu'on a un fichier régulier */
 		if(sp->flag_k)
 		{
 			if(lstat(filename,&tmp) != -1)
@@ -643,6 +643,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
                     continue;
                 }
 
+                /* Si le checsum du fichier extrait est le même celui avant compression */
                 if(!strncmp(checksum,info.checksum,CHECKSUM_SIZE))
                 {
                     printf("%s: INFO : Le fichier %s est intègre \n",argv[0],filename);
@@ -656,7 +657,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
                 fprintf(stderr,"%s: %s : Probleme interne à checksumRenseigne() ou paramètres invalides\n",argv[0],filename);
         }
 
-	}
+	}   /* Fin while */
 
     if(unlockfile(archive) == -1)
     {
@@ -689,10 +690,19 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Opt
 		return -1;
 	}
 
+
+    /* Si c'est un fichier compressé, on ne fait rien */
+    if(strstr(archive_file,".gz"))
+    {
+        fprintf(stderr,"Je ne peux rien ajouter dans un fichier '.gz' \n");
+        return -1;
+    }
+
+
 	if(firstPath == -1)
 	{
 	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
-        fprintf(stderr," %s:ERREUR: Aucun ficheir n'a été renseigné \n",argv[0]);
+        fprintf(stderr," %s:ERREUR: Aucun fichier n'a été renseigné \n",argv[0]);
         return -1;
 	}
 
@@ -767,6 +777,13 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		fprintf(stderr," %s:ERREUR: supression dans l'archive non permise, option '-d' non detectée \n",argv[0]);
 		return -1;
 	}
+
+    /* Si c'est un fichier compressé, on ne fait rien */
+    if(strstr(archive_file,".gz"))
+    {
+        fprintf(stderr,"Je ne peux rien supprimer dans un fichier '.gz' \n");
+        return -1;
+    }
 
 	if(firstPath == -1)
 	{
@@ -896,7 +913,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 #endif
                 lseek(fdArchive,info.file_length,SEEK_CUR);
             }
-        }
+        }   /* Fin if(supprimer) */
         else
         {
             if(ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE))
@@ -1056,7 +1073,7 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
 
         if(firstPath != -1)
         {
-            /* On ne veut extraire que les fichiers en paramètre */
+            /* On ne veut lire que les fichiers en paramètre */
             for(i = firstPath; i < argc; i++)
             {
                 if(!strncmp(filename,argv[i],strlen(argv[i])))
@@ -1066,7 +1083,7 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
                 }
             }
 
-            /* Le fichier que je m'apprête à extraire est-il dans les fichiers désirés */
+            /* Le fichier que je m'apprête à afficher est-il dans les fichiers désirés ? */
             if(lister == 0)
             {   /* Ce n'est pas un fichier que j'ai demandé, on passe à la suite */
 
@@ -1075,7 +1092,7 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
 
                 continue;
             }
-        }
+        } /* Fin if sur firstPath */
 
         if(remplirChamps(&info,champs) == NULL)
         {
@@ -1090,6 +1107,13 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
                 if(read(archive,buf,info.file_length) == info.file_length )
                 {
                     buf[info.file_length] = '\0';
+
+                    if(sp->flag_m)
+                    {
+                        strcat(champs,info.checksum);
+                        strcat(champs," ");
+                    }
+
                     strcat(champs,filename);
                     strcat(champs, " -> ");
                     strcat(champs,buf);
@@ -1102,6 +1126,14 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
             {
                 if(!S_ISLNK(info.mode))
                 {
+                    if(sp->flag_m)
+                    {
+                        if(S_ISDIR(info.mode))  /* On a un répertoire -> on met des '0' */
+                            memset(info.checksum,'0',CHECKSUM_SIZE);
+
+                        strcat(champs,info.checksum);
+                        strcat(champs," ");
+                    }
                     strcat(champs,filename);
                     printf("%s \n",champs);
                 }
