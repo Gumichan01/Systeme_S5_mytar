@@ -22,11 +22,11 @@ void usage(char * prog)
 	if(prog != NULL)
 	{
 		printf("Utilisation : \n");
-		printf("%s -c -f <nom_archive>.mtr <path1>...<pathn> : archiver les fichiers path dans le fichier archive .mtr\n",prog);
-		printf("%s -a <path1>...<pathn> -f <nom_archive>.mtr : ajouter un fichier à l'archive\n",prog);
-		printf("%s -d <path1>...<pathn> -f <nom_archive>.mtr : supprimer un/les fichier(s) path de l'archive\n",prog);
-		printf("%s -x -f <nom_archive>.mtr <path1>...<pathn> : extraire un/les fichier(s) path de l'archive\n",prog);
-		printf("%s -l -f <nom_archive>.mtr <path1>...<pathn> : lister les fichiers archivés \n",prog);
+		printf("%s -c -[svz] -C <rep> -f <nom_archive>.mtr[.gz] <path1>...<pathn> : archiver les fichiers path dans le fichier archive .mtr\n",prog);
+		printf("%s -a <path1>...<pathn> -[sv] -f <nom_archive>.mtr : ajouter un fichier à l'archive\n",prog);
+		printf("%s -d <path1>...<pathn> [-s] -f <nom_archive>.mtr : supprimer un/les fichier(s) path de l'archive\n",prog);
+		printf("%s -x -[svzk] -C <rep> -f <nom_archive>.mtr[.gz] <path1>...<pathn> : extraire un/les fichier(s) path de l'archive\n",prog);
+		printf("%s -l -[ms] -f <nom_archive>.mtr <path1>...<pathn> : lister les fichiers archivés \n",prog);
 
 		printf("\nRemarque 1 : pour les options '-x' et '-l', si les path ne sont pas renseignés, tous les fichiers sont traités \n");
 		printf("\nOptions auxiliaires : \n");
@@ -34,17 +34,12 @@ void usage(char * prog)
 		printf(" -k : à l'extraction, n'écrase pas les fichiers existants ayant le même nom\n");
 		printf(" -s : prendre en compte les liens symboliques\n");
 		printf(" -C <rep> : à la création, définit rep comme racine des fichiers archivés. A l'extraction, tous les fichiers sont extraits dans <rep>\n");
-		printf(" -v : à la création et l'ajout, calcule le md5sum du fichier à archiver. A l'extraction, compare md5 du fichier extrait à la valeur renseignée\n");
+		printf(" -v : à la création et l'ajout, calcule le md5sum du fichier à archiver. A l'extraction, compare le md5 du fichier extrait avec la valeur renseignée\n");
         printf(" -m : avec l'option '-l', affiche aussi le md5 de chaque fichier si celui-ci est renseigné et qu'on a des fichiers normaux\n");
         printf(" -z : à la création, extraction + affichage, decompresse le fichier avant d'en afficher le contenu\n");
 
-        /*printf("Quelques exemples : \n");
-        printf("%s -c -C rep1 -f hum.mtr toto tata titi tutu \n",prog);
-        printf("%s -x -C rep2 -f hum.mtr \n",prog);
-        printf("%s -l -f hum.mtr \n",prog);*/
-
 	}
-	exit(EXIT_FAILURE);
+	exit(EXIT_SUCCESS);
 }
 
 
@@ -692,6 +687,9 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Opt
 	int fdArchive;
 	int i, err = 0;
 
+	char root[MAX_PATH];
+
+	getRepRoot(root,argc,argv);
 
 	if(sp == NULL)	return -1;
 
@@ -717,7 +715,6 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Opt
         return -1;
 	}
 
-
 	fdArchive = open(archive_file,O_WRONLY| O_APPEND);
 
 	if(fdArchive == -1)
@@ -738,7 +735,7 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Opt
 
 	for(i = firstPath; (i< argc && argv[i][0] != '-' ); i++)
 	{
-		err += archiver(fdArchive, argv[i],NULL, sp);
+		err += archiver(fdArchive, argv[i],root, sp);
 	}
 
     if(unlockfile(fdArchive) == -1)
@@ -871,7 +868,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 		/*filename[info.path_length] = '\0';*/
 
         /* On ne veut supprimer que les fichiers en paramètre */
-        for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
+        for(i = firstPath; (i< argc && argv[i][0] != '-'); i++)
         {
             if(!strncmp(filename,argv[i],strlen(argv[i])))
             {

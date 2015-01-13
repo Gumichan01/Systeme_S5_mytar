@@ -33,7 +33,7 @@
 
 
 #ifndef BUFSIZE
-#define BUFSIZE 1048576		/* Constante definissant la taille du buffer */
+#define BUFSIZE 2048		/* Constante definissant la taille du buffer */
 #endif
 
 

@@ -168,7 +168,7 @@ int check_param(int argc, char **argv, Option *sp)
 
 		if(!strcmp(argv[i],"-C"))
 		{
-			if(sp->flag_C || sp->flag_a)
+			if(sp->flag_C)
 			{
 
 				return -1;

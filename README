@@ -1,9 +1,13 @@
 Projet Système S5 : mytar
 
+
 Auteurs : Kahina RAHANI & Luxon JEAN-PIERRE
 
 
-Ce projet consiste à créer une implémentation d'un programme d'archivage fonctionnant de manière analogue à tar.
+
+Présentation du projet :
+
+	Ce projet consiste à créer une implémentation d'un programme d'archivage fonctionnant de manière analogue à tar.
 
 
 Fonctionnalités réalisées : 
@@ -15,28 +19,38 @@ Fonctionnalités réalisées :
 	-x : extraction de l'archive
 	-k : ne pas écraser le contenu existant lors de l'extraction
 	-s : prendre en compte les liens symboliques pour toutes les opérations 
-	-C rep : en ajout et en extraction
+	-C <rep> : mettre rep comme racine en création et en extraction
 	-v : en création et en extraction 
 
 	Les verrous sont utilisés.
 
 Extensions : 
 
+	-h : affiche l'aide d'utilisation 
 	-m : affiche le md5 de chaque fichier (à utiliser avec l'option '-l')
 	-z : compresse et décompresse un fichier au format <nom>.mtr.gz (création + extraction)
+
+	+ prise en charge des option '-v' et '-C <rep>' lors de l'ajout des fichiers
 
 Cas problématiques gérés :
 
 	- Les chemins absolus sont traités dans tous les cas.
+		Exemples : /home/toto -> home/toto
+ 
 	- Les chemins contenant des "./" et "../" sont traités proprement.
+		Exemples : ./tata/./titi -> tata/titi
+			   tata/../toto/tutu/machin ->	toto/tutu/machin
 
+Bugs :
+
+	Aucun bug connu n'a été detecté
 
 Exemples de commande :
 
 ./mytar -c -f toto.mtr path1...pathn		// archivage
 ./mytar -c -C rep -f toto.mtr path1...pathn 	// archivage mais tout est mis dans rep/
-./mytar -l -f toto.mtr 				// liste tous les fichiers (marche aussi pour les fichiers '.gz')
-./mytar -x -f toto.mtr 				// extrait tous les fichiers
+./mytar -l -f toto.mtr 				// liste tous les fichiers (marche aussi pour les fichiers ".mtr.gz")
+./mytar -x -f toto.mtr 				// extrait tous les fichiers (pareil pour les ".mtr.gz")
 
 ./mytar -c -z -f toto.mtr.gz path1...pathn	// archive puis compresse
 ./mytar -x -z -f toto.mtr.gz			// decompresse puis extrait (preserve le ficheir ".gz")
