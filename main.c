@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 	char archive_file[MAX_FILE];
 	char archive_gz[MAX_FILE];  /* Archive après décompression */
 	int param = 0;              /* on met param à 0 mais ça peut changer */
-	int retval;
+	int retval, len;            /*valeur de contôle et longeur d'un path*/
 	Option sp;
 
 	init(&sp);	/* On met tous les champs à zero */
@@ -73,6 +73,27 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    len = strlen(archive_file);
+
+    if(strstr(archive_file,".gz") != NULL)
+    {
+        /* On verifie qu'on a bien un ficheir <nom>.mtr.gz */
+        if(len < 7 || archive_file[len - 7] != '.')
+        {
+            fprintf(stderr,"%s : Bien essayé pour le \".gz\" en pleine chaine, mais je ne suis pas dupe \n",basename(argv[0]));
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        /* A-t-on un fichier <nom>.mtr ?*/
+        if(len < 4 || archive_file[len - 4] != '.')
+        {
+            fprintf(stderr,"%s : Bien essayé pour le \".mtr\" en pleine chaine, mais je ne suis pas dupe \n",basename(argv[0]));
+            return EXIT_FAILURE;
+        }
+    }
+
 
 #ifdef DEBUG
 	printf("DEBUG : Archive : %s ; param : %d ; \n", archive_file, param);
@@ -93,11 +114,17 @@ int main(int argc, char **argv)
             memset(archive_file, 0,strlen(archive_file));   /*On met des 0 */
             strncpy(archive_file,archive_gz,strlen(archive_gz) - 3);    /* on met le nom sans le ".gz" */
         }
+        else if(strstr(archive_file,".gz") != NULL)
+        {
+            /* On a un fichier .gz alors que la compression n'est pas demandée */
+            fprintf(stderr,"%s: fichier %s invalide pour l'archivage simple \n",basename(argv[0]), archive_file);
+            return EXIT_FAILURE;
+        }
 
         /* Dans tous les cas on archive dans un fichier .mtr */
 		if(creer_archive(archive_file,param,argc, argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : impossible de créer l'archive \n",basename(argv[0]));
+			fprintf(stderr,"%s: impossible de créer l'archive \n",basename(argv[0]));
 			return EXIT_FAILURE;
 		}
 
@@ -132,7 +159,7 @@ int main(int argc, char **argv)
 
             if(decompresser(archive_gz) == -1)
             {
-                    fprintf(stderr,"%s : impossible de décompresser l'archive, fichier invalide ! \n",basename(argv[0]));
+                    fprintf(stderr,"%s: impossible de décompresser l'archive, fichier invalide ! \n",basename(argv[0]));
                     unlink(archive_gz);
                     return EXIT_FAILURE;
             }
@@ -160,7 +187,7 @@ int main(int argc, char **argv)
 
 		if(ajouter_fichier(archive_file,param,argc,argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : Problème lors de l'ajout des fichiers dans l'archive %s \n",basename(argv[0]), archive_file);
+			fprintf(stderr,"%s: Problème lors de l'ajout des fichiers dans l'archive %s \n",basename(argv[0]), archive_file);
 			return EXIT_FAILURE;
 		}
 
@@ -173,7 +200,7 @@ int main(int argc, char **argv)
 
 		if(supprimer_fichiers(archive_file,param,argc,argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : Problème lors de la suppression des fichiers de l'archive %s \n",basename(argv[0]),archive_file);
+			fprintf(stderr,"%s: Problème lors de la suppression des fichiers de l'archive %s \n",basename(argv[0]),archive_file);
 			return EXIT_FAILURE;
 		}
 
@@ -199,7 +226,7 @@ int main(int argc, char **argv)
 
             if(decompresser(archive_gz) == -1)
             {
-                    fprintf(stderr,"%s : impossible de décompresser l'archive, fichier invalide ! \n",basename(argv[0]));
+                    fprintf(stderr,"%s: impossible de décompresser l'archive, fichier invalide ! \n",basename(argv[0]));
                     unlink(archive_gz);
                     return EXIT_FAILURE;
             }
@@ -215,7 +242,7 @@ int main(int argc, char **argv)
 
 		if(retval == -1)
 		{
-			fprintf(stderr,"%s : Problème lors de l'affichage des fichiers situés dans l'archive %s \n",basename(argv[0]),archive_file);
+			fprintf(stderr,"%s: Problème lors de l'affichage des fichiers situés dans l'archive %s \n",basename(argv[0]),archive_file);
 			return EXIT_FAILURE;
 		}
 	}

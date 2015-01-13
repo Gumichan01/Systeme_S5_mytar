@@ -49,7 +49,7 @@ int ecrireEntete(int archive, Entete *info, char *filename)
 	if(info != NULL)
 	{
 	    if( write(archive,&info->path_length,sizeof(size_t)) != sizeof(size_t)
-            || write(archive,&info->file_length,sizeof(off_t)) != sizeof(size_t)
+            || write(archive,&info->file_length,sizeof(off_t)) != sizeof(off_t)
             || write(archive,&info->mode,sizeof(mode_t)) != sizeof(mode_t)
             || write(archive,&info->m_time,sizeof(time_t)) != sizeof(time_t)
             || write(archive,&info->a_time,sizeof(time_t)) != sizeof(time_t)
@@ -220,6 +220,10 @@ int archiver(int archive, char *filename, char *root, Option *sp)
 				}
 				else
 				{
+				    /*  Le champs st_size est en fait la taille du fichier cible
+                        Donc on change la valeur st_size pour la mettre à lus */
+				    info.file_length = lus;
+
 					if(ecrireEntete(archive,&info,newF) == -1)
 					{
 #ifdef DEBUG
@@ -227,7 +231,7 @@ int archiver(int archive, char *filename, char *root, Option *sp)
 #endif
                         return -1;
 					}
-
+                    buf[lus] = '\0';
 					write(archive,buf,lus);
 				}
 			}
@@ -696,7 +700,7 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Opt
     /* Si c'est un fichier compressé, on ne fait rien */
     if(strstr(archive_file,".gz"))
     {
-        fprintf(stderr,"Je ne peux rien ajouter dans un fichier '.gz' \n");
+        fprintf(stderr,"%s: Je ne peux rien ajouter dans un fichier '.gz' \n",basename(argv[0]));
         return -1;
     }
 
@@ -783,7 +787,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
     /* Si c'est un fichier compressé, on ne fait rien */
     if(strstr(archive_file,".gz"))
     {
-        fprintf(stderr,"Je ne peux rien supprimer dans un fichier '.gz' \n");
+        fprintf(stderr,"%s: Je ne peux rien supprimer dans un fichier '.gz' \n",basename(argv[0]));
         return -1;
     }
 
@@ -816,6 +820,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	if(fdFichier == -1)
 	{
 		close(fdArchive);
+		warn("%s : problème interne - fdFichier \n",basename(argv[0]));
 		return -1;
 	}
 
@@ -845,7 +850,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 		/* On lit l'entete */
 
-        if( read(fdArchive,&info.path_length,sizeof(info.path_length)) != sizeof(info.path_length)
+        if( read(fdArchive,&info.path_length,sizeof(size_t)) != sizeof(size_t)
             || read(fdArchive,&info.file_length,sizeof(off_t)) != sizeof(off_t)
             || read(fdArchive,&info.mode,sizeof(mode_t)) != sizeof(mode_t)
             || read(fdArchive,&info.m_time,sizeof(time_t)) != sizeof(time_t)
@@ -854,6 +859,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
             || read(fdArchive, filename, info.path_length) != info.path_length )
         {
             err = -1;
+            warn("%s : problème interne - lecture archive \n",basename(argv[0]));
             break;
         }
 
@@ -863,9 +869,9 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
         for(i = firstPath; (i< argc && strcmp(argv[i],"-f")); i++)
         {
             if(!strncmp(filename,argv[i],strlen(argv[i])))
-            {   /* On a deux fichiers egaux ou un fichier qui est dans l'arborescence argv[i] */
+            {
+                /* On a deux fichiers egaux ou un fichier qui est dans l'arborescence argv[i] */
                 supprimer = 1;
-
                 break;
             }
 
@@ -914,17 +920,20 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	printf("DEBUG : %s a été supprimé \n",filename);
 #endif
                 lseek(fdArchive,info.file_length,SEEK_CUR);
-            }
+
+            }   /* Fin if S_ISLNK */
+
         }   /* Fin if(supprimer) */
         else
         {
-            if(ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE))
+            if(ecrire_fichier_sauvegarde(fdArchive,fdFichier, &info,filename, buf, BUFSIZE) == -1)
             {
                 err = -1;
+                warn("%s : problème interne - sauvegarde 1 \n",basename(argv[0]));
                 break;
             }
         }
-	}
+	} /* Fin while */
 
     unlockfile(fdFichier);
     unlockfile(fdArchive);
@@ -1067,6 +1076,7 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
             || read(archive,filename, info.path_length) != info.path_length )
         {
             err = -1;
+            warn("%s : problème interne - lecture pour liste \n",basename(argv[0]));
             break;
         }
 
