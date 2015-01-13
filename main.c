@@ -86,6 +86,15 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_c actif -> création archive \n");
 #endif
 
+        /* Si '-z' est renseigné ET l'archive à la sous-chaine ".gz" */
+        if(sp.flag_z && (strstr(archive_file,".gz") != NULL))
+        {
+            strcpy(archive_gz,archive_file);    /* on copie le nom dans archive_gz*/
+            memset(archive_file, 0,strlen(archive_file));   /*On met des 0 */
+            strncpy(archive_file,archive_gz,strlen(archive_gz) - 3);    /* on met le nom sans le ".gz" */
+        }
+
+        /* Dans tous les cas on archive dans un fichier .mtr */
 		if(creer_archive(archive_file,param,argc, argv,&sp) == -1)
 		{
 			fprintf(stderr,"%s : impossible de créer l'archive \n",argv[0]);

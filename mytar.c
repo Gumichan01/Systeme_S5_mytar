@@ -1110,6 +1110,8 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
 
                     if(sp->flag_m)
                     {
+                        memset(info.checksum,'0',CHECKSUM_SIZE);
+
                         strcat(champs,info.checksum);
                         strcat(champs," ");
                     }
@@ -1128,7 +1130,7 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
                 {
                     if(sp->flag_m)
                     {
-                        if(S_ISDIR(info.mode))  /* On a un répertoire -> on met des '0' */
+                        if(S_ISDIR(info.mode) || (checksumRenseigne(info.checksum) != 1))  /* On a un répertoire -> on met des '0' */
                             memset(info.checksum,'0',CHECKSUM_SIZE);
 
                         strcat(champs,info.checksum);

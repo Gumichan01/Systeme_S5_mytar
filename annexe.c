@@ -343,7 +343,7 @@ int compresser(char *archive_file)
 
 		execlp(cmd,cmd,archive_file, NULL);
 
-		perror("Erreur lors de l'execution de gzip ");
+		perror("gzip ");
 
 		exit(-1);
 
@@ -387,7 +387,7 @@ int decompresser(char *compressed_file)
 
 		execlp(cmd,cmd,"-d",compressed_file, NULL);
 
-		perror("Erreur lors de l'execution de gzip ");
+		perror("gzip ");
 
 		exit(-1);
 
@@ -430,7 +430,7 @@ int copy(char *dest, char *src)
 
 		execlp(cmd,cmd,src,dest, NULL);
 
-		perror("Erreur lors de l'execution de cp ");
+		perror("cp ");
 
 		exit(-1);
 
