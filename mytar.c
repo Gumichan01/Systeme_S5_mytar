@@ -23,10 +23,10 @@ void usage(char * prog)
 	{
 		printf("Utilisation : \n");
 		printf("%s -c -f <nom_archive>.mtr <path1>...<pathn> : archiver les fichiers path dans le fichier archive .mtr\n",prog);
-		printf("%s -a <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : ajouter un fichier à l'archive\n",prog);
-		printf("%s -d <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : supprimer un/les fichier(s) path de l'archive\n",prog);
-		printf("%s -x <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : extraire un/les fichier(s) path de l'archive\n",prog);
-		printf("%s -l <path1>...<pathn> -f <nom_archive>.mtr <path1>...<pathn> : lister les fichiers archivés \n",prog);
+		printf("%s -a <path1>...<pathn> -f <nom_archive>.mtr : ajouter un fichier à l'archive\n",prog);
+		printf("%s -d <path1>...<pathn> -f <nom_archive>.mtr : supprimer un/les fichier(s) path de l'archive\n",prog);
+		printf("%s -x -f <nom_archive>.mtr <path1>...<pathn> : extraire un/les fichier(s) path de l'archive\n",prog);
+		printf("%s -l -f <nom_archive>.mtr <path1>...<pathn> : lister les fichiers archivés \n",prog);
 
 		printf("\nRemarque 1 : pour les options '-x' et '-l', si les path ne sont pas renseignés, tous les fichiers sont traités \n");
 		printf("\nOptions auxiliaires : \n");
@@ -35,8 +35,13 @@ void usage(char * prog)
 		printf(" -s : prendre en compte les liens symboliques\n");
 		printf(" -C <rep> : à la création, définit rep comme racine des fichiers archivés. A l'extraction, tous les fichiers sont extraits dans <rep>\n");
 		printf(" -v : à la création et l'ajout, calcule le md5sum du fichier à archiver. A l'extraction, compare md5 du fichier extrait à la valeur renseignée\n");
-        printf(" -m : à l'affichage des fichiers, affiche aussi le md5 de chaque fichier si celui-ci est renseigné et qu'on a des fichiers normaux\n");
+        printf(" -m : avec l'option '-l', affiche aussi le md5 de chaque fichier si celui-ci est renseigné et qu'on a des fichiers normaux\n");
         printf(" -z : à la création, extraction + affichage, decompresse le fichier avant d'en afficher le contenu\n");
+
+        /*printf("Quelques exemples : \n");
+        printf("%s -c -C rep1 -f hum.mtr toto tata titi tutu \n",prog);
+        printf("%s -x -C rep2 -f hum.mtr \n",prog);
+        printf("%s -l -f hum.mtr \n",prog);*/
 
 	}
 	exit(EXIT_FAILURE);
