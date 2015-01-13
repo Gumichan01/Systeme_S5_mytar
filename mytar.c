@@ -1047,7 +1047,7 @@ int liste_fichiers(char *archive_file, Option *sp, int argc, char **argv)
 
 	if(!sp->flag_l)
 	{
-		fprintf(stderr,"ERREUR : ajout dans l'archive non permise, option '-l' non detectée ");
+		fprintf(stderr,"ERREUR : affichage des éléments dans l'archive non permise, option '-l' non detectée ");
 		return -1;
 	}
 

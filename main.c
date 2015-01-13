@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_c actif -> création archive \n");
 #endif
 
-        /* Si '-z' est renseigné ET l'archive à la sous-chaine ".gz" */
+        /* Si '-z' est renseigné ET l'archive a la sous-chaine ".gz" */
         if(sp.flag_z && (strstr(archive_file,".gz") != NULL))
         {
             strcpy(archive_gz,archive_file);    /* on copie le nom dans archive_gz*/
