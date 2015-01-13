@@ -33,8 +33,10 @@ void usage(char * prog)
 
 		printf(" -k : à l'extraction, n'écrase pas les fichiers existants ayant le même nom\n");
 		printf(" -s : prendre en compte les liens symboliques\n");
-		printf(" -C <rep> : à la création, défitint rep comme racine des fichiers archivés. A l'extraction, tous les fichiers sont extraits dans <rep>\n");
+		printf(" -C <rep> : à la création, définit rep comme racine des fichiers archivés. A l'extraction, tous les fichiers sont extraits dans <rep>\n");
 		printf(" -v : à la création et l'ajout, calcule le md5sum du fichier à archiver. A l'extraction, compare md5 du fichier extrait à la valeur renseignée\n");
+        printf(" -m : à l'affichage des fichiers, affiche aussi le md5 de chaque fichier si celui-ci est renseigné et qu'on a des fichiers normaux\n");
+        printf(" -z : à la création, extraction + affichage, decompresse le fichier avant d'en afficher le contenu\n");
 
 	}
 	exit(EXIT_FAILURE);
@@ -84,7 +86,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Optio
 
 	if(!sp->flag_c)
 	{
-		fprintf(stderr,"%s : création de l'archive non permise, option '-c' non detectée ",argv[0]);
+		fprintf(stderr,"%s : création de l'archive non permise, option '-c' non detectée ",basename(argv[0]));
 		return -1;
 	}
 
@@ -92,7 +94,7 @@ int creer_archive(char *archive_file, int firstPath,int argc, char **argv, Optio
 	if(firstPath == -1)
 	{
 	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
-        fprintf(stderr," %s : ERREUR: Aucun fichier n'a été renseigné \n",argv[0]);
+        fprintf(stderr," %s : ERREUR: Aucun fichier n'a été renseigné \n",basename(argv[0]));
         return -1;
 	}
 
@@ -438,7 +440,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
 
     if(read_lock(archive,0,SEEK_SET,0) == -1)
     {
-        warn("[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s à extraire ",getpid(),archive_file);
+        warn("%s[%d] Attention : Je n'ai pas pu mettre le verrou sur le fichier %s à extraire ",basename(argv[0]),getpid(),archive_file);
         close(archive);
         return -1;
     }
@@ -538,7 +540,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
 			{
 				if(lstat(filename,&tmp) != -1)
 				{
-					printf("ATTENTION : %s déjà existant\n",filename);
+					printf("%s: ATTENTION : %s déjà existant\n",basename(argv[0]),filename);
 					continue;
 				}
 			}
@@ -551,7 +553,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
                 {
                     if(mkdirP(arbo) == -1)
                     {
-                        fprintf(stderr,"ATTENTION : Erreur lors de la création de l'arborescence %s\n",arbo);
+                        fprintf(stderr,"%s: ATTENTION : Erreur lors de la création de l'arborescence %s \n",basename(argv[0]),arbo);
                         /*lseek(archive,info.file_length,SEEK_CUR);*/
                         continue;
                     }
@@ -571,7 +573,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
 			{
 				if(lstat(filename,&tmp) != -1)
 				{
-					printf("ATTENTION : %s déjà existant\n",filename);
+					printf("%s: ATTENTION : %s déjà existant\n",basename(argv[0]),filename);
 					continue;
 				}
 			}
@@ -593,7 +595,7 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
 			if(lstat(filename,&tmp) != -1)
 			{
 				lseek(archive, info.file_length,SEEK_CUR);
-				printf("ATTENTION : %s déjà existant\n",filename);
+				printf("%s: ATTENTION : %s déjà existant\n",basename(argv[0]),filename);
 				continue;	/* On passe au fichier suivant */
 			}
 		}
@@ -639,22 +641,22 @@ int extraire_archive(char *archive_file, int firstPath,int argc, char **argv, Op
             {
                 if(md5sum(filename,checksum) == NULL)
                 {
-                    fprintf(stderr,"%s : Probleme lors de l'obtention du md5 de %s",argv[0],filename);
+                    fprintf(stderr,"%s : Probleme lors de l'obtention du md5 de %s",basename(argv[0]),filename);
                     continue;
                 }
 
                 /* Si le checsum du fichier extrait est le même celui avant compression */
                 if(!strncmp(checksum,info.checksum,CHECKSUM_SIZE))
                 {
-                    printf("%s: INFO : Le fichier %s est intègre \n",argv[0],filename);
+                    printf("%s: INFO : Le fichier %s est intègre \n",basename(argv[0]),filename);
                 }
                 else
-                    printf("%s: ATTENTION : Le fichier %s n'est pas intègre \n",argv[0],filename);
+                    printf("%s: ATTENTION : Le fichier %s n'est pas intègre \n",basename(argv[0]),filename);
             }
             else if(err == 0)
-               printf("%s: INFO : Le checksum de %s n'est pas renseigné \n",argv[0],filename);
+               printf("%s: INFO : Le checksum de %s n'est pas renseigné \n",basename(argv[0]),filename);
             else
-                fprintf(stderr,"%s: %s : Probleme interne à checksumRenseigne() ou paramètres invalides\n",argv[0],filename);
+                fprintf(stderr,"%s: %s : Probleme interne à checksumRenseigne() ou paramètres invalides\n",basename(argv[0]),filename);
         }
 
 	}   /* Fin while */
@@ -702,7 +704,7 @@ int ajouter_fichier(char *archive_file, int firstPath,int argc, char **argv, Opt
 	if(firstPath == -1)
 	{
 	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
-        fprintf(stderr," %s:ERREUR: Aucun fichier n'a été renseigné \n",argv[0]);
+        fprintf(stderr," %s:ERREUR: Aucun fichier n'a été renseigné \n",basename(argv[0]));
         return -1;
 	}
 
@@ -774,7 +776,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 
 	if(!sp->flag_d)
 	{
-		fprintf(stderr," %s:ERREUR: supression dans l'archive non permise, option '-d' non detectée \n",argv[0]);
+		fprintf(stderr," %s:ERREUR: supression dans l'archive non permise, option '-d' non detectée \n",basename(argv[0]));
 		return -1;
 	}
 
@@ -788,13 +790,13 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	if(firstPath == -1)
 	{
 	    /* L'utilisateur n'a pas fourni de fichier, Il n'y a rien à faire */
-        fprintf(stderr," %s:ERREUR: Aucun fichier n'a été renseigné \n",argv[0]);
+        fprintf(stderr," %s : ERREUR : Aucun fichier n'a été renseigné \n",basename(argv[0]));
         return -1;
 	}
 
 	if(stat(archive_file, &s) == -1)
 	{
-		warn("%s - impossible d'obtenir les informations sur le fichier %s \n",argv[0],archive_file);
+		warn("%s - impossible d'obtenir les informations sur le fichier %s \n",basename(argv[0]),archive_file);
 		return -1;
 	}
 
@@ -805,7 +807,7 @@ int supprimer_fichiers(char *archive_file, int firstPath,int argc, char **argv, 
 	if(fdArchive == -1)
 	{
 
-		warn("%s : erreur à l'ouverture du fichier archivé %s \n",argv[0],archive_file);
+		warn("%s : erreur à l'ouverture du fichier archivé %s \n",basename(argv[0]),archive_file);
 		return -1;
 	}
 

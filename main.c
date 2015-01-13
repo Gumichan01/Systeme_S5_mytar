@@ -29,13 +29,13 @@ int main(int argc, char **argv)
 
 	if(argc < 2 )
 	{
-		fprintf(stderr," %s : Manque d'arguments\n %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
+		fprintf(stderr," %s : Manque d'arguments\n %s -h  pour savoir comment utiliser le programme\n",basename(argv[0]),basename(argv[0]) );
 		return EXIT_FAILURE;
 	}
 
 	if( ( nb_options = check_param(argc,argv,&sp)) == -1)
 	{
-		fprintf(stderr," %s : Problème avec les options du programme\n %s -h  pour savoir comment utiliser le programme\n",argv[0],argv[0]);
+		fprintf(stderr," %s : Problème avec les options du programme\n %s -h  pour savoir comment utiliser le programme\n",basename(argv[0]),basename(argv[0]));
 		return EXIT_FAILURE;
 	}
 
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 	/*Aucune option ? option -h actif ?*/
 	if(nb_options== 0 || sp.flag_h)
 	{	/* On n'a aucun arametre ou l'option -h est active */
-		usage(argv[0]);
+		usage(basename(argv[0]));
 	}
 
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 	/* Si le sp.flag -f n'est pas présent, arrêt du programme */
 	if(!sp.flag_f)
 	{
-		fprintf(stderr," %s : Erreur fatal, option -f (obligatoire) non présente\n %s -h pour savoir comment utiliser le programme\n",argv[0],argv[0]);
+		fprintf(stderr," %s : Erreur fatal, option -f (obligatoire) non présente\n %s -h pour savoir comment utiliser le programme\n",basename(argv[0]),basename(argv[0]));
 		return EXIT_FAILURE;
 	}
 
@@ -66,10 +66,10 @@ int main(int argc, char **argv)
 	getArchive(archive_file,argc,argv);
 	param = getFirstPath(argc,argv);
 
-
+    /* Le fichier a-til une sous-chaine ".mtr" ? */
     if(strstr(archive_file,".mtr") == NULL)
     {
-        fprintf(stderr,"%s : je refuse de traiter un fichier non valide. '%s' n'est pas un fichier '.mtr' \n",argv[0], archive_file);
+        fprintf(stderr,"%s : je refuse de traiter un fichier non valide. '%s' n'est pas un fichier '.mtr' \n",basename(argv[0]), archive_file);
         return EXIT_FAILURE;
     }
 
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         /* Dans tous les cas on archive dans un fichier .mtr */
 		if(creer_archive(archive_file,param,argc, argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : impossible de créer l'archive \n",argv[0]);
+			fprintf(stderr,"%s : impossible de créer l'archive \n",basename(argv[0]));
 			return EXIT_FAILURE;
 		}
 
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 
             if(decompresser(archive_gz) == -1)
             {
-                    fprintf(stderr,"%s : impossible de décompresser l'archive, fichier invalide ! \n",argv[0]);
+                    fprintf(stderr,"%s : impossible de décompresser l'archive, fichier invalide ! \n",basename(argv[0]));
                     unlink(archive_gz);
                     return EXIT_FAILURE;
             }
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 
         if(retval == -1)
         {
-            fprintf(stderr,"%s : impossible d'extraire l'archive, fichier invalide ! \n",argv[0]);
+            fprintf(stderr,"%s : impossible d'extraire l'archive, fichier invalide ! \n",basename(argv[0]));
             return EXIT_FAILURE;
         }
 
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
 		if(ajouter_fichier(archive_file,param,argc,argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : Problème lors de l'ajout des fichiers dans l'archive %s \n",argv[0], archive_file);
+			fprintf(stderr,"%s : Problème lors de l'ajout des fichiers dans l'archive %s \n",basename(argv[0]), archive_file);
 			return EXIT_FAILURE;
 		}
 
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 
 		if(supprimer_fichiers(archive_file,param,argc,argv,&sp) == -1)
 		{
-			fprintf(stderr,"%s : Problème lors de la suppression des fichiers de l'archive %s \n",argv[0],archive_file);
+			fprintf(stderr,"%s : Problème lors de la suppression des fichiers de l'archive %s \n",basename(argv[0]),archive_file);
 			return EXIT_FAILURE;
 		}
 
@@ -184,16 +184,45 @@ int main(int argc, char **argv)
 		printf("DEBUG : sp.flag_l actif -> liste des fichiers dans archive \n");
 #endif
 
-		if(liste_fichiers(archive_file, &sp,argc,argv) == -1)
+        if(sp.flag_z && (strstr(archive_file,".gz") != NULL))
+        {
+            memset(archive_gz,0,MAX_FILE);
+            sprintf(archive_gz,".%d-%s",getpid(),archive_file);
+
+            /*  On copie le contenu du fichier cible dans archive_gz
+                Car on ne doit pas modifier le fichier existant */
+
+            if(copy(archive_gz,archive_file) == -1)
+                    return EXIT_FAILURE;
+
+            strncpy(archive_file,archive_gz,strlen(archive_gz) - 3);
+
+            if(decompresser(archive_gz) == -1)
+            {
+                    fprintf(stderr,"%s : impossible de décompresser l'archive, fichier invalide ! \n",basename(argv[0]));
+                    unlink(archive_gz);
+                    return EXIT_FAILURE;
+            }
+
+            retval = liste_fichiers(archive_file, &sp,argc,argv);
+
+            unlink(archive_gz);
+            unlink(archive_file);
+
+        }
+        else
+            retval = liste_fichiers(archive_file, &sp,argc,argv);
+
+		if(retval == -1)
 		{
-			fprintf(stderr,"%s : Problème lors de l'affichage des fichiers situés dans l'archive %s \n",argv[0],archive_file);
+			fprintf(stderr,"%s : Problème lors de l'affichage des fichiers situés dans l'archive %s \n",basename(argv[0]),archive_file);
 			return EXIT_FAILURE;
 		}
 	}
 	else
 	{
         printf("C'est bien beau de me donner '%s', mais je ne sais pas quoi faire avec !!\n", archive_file);
-        printf("RYFM -> %s -h\n",argv[0]);
+        printf("RYFM -> %s -h\n",basename(argv[0]));
 	}
 
 	return EXIT_SUCCESS;

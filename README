@@ -29,3 +29,17 @@ Cas problématiques gérés :
 
 	- Les chemins absolus sont traités dans tous les cas.
 	- Les chemins contenant des "./" et "../" sont traités proprement.
+
+
+Exemples de commande :
+
+./mytar -c -f toto.mtr path1...pathn		// archivage
+./mytar -c -C rep -f toto.mtr path1...pathn 	// archivage mais tout est mis dans rep/
+./mytar -l -f toto.mtr 				// liste tous les fichiers (marche aussi pour les fichiers '.gz')
+./mytar -x -f toto.mtr 				// extrait tous les fichiers
+
+./mytar -c -z -f toto.mtr.gz path1...pathn	// archive puis compresse
+./mytar -x -z -f toto.mtr.gz			// decompresse puis extrait (preserve le ficheir ".gz")
+
+
+N'hésitez pas à utiliser la commande ./mytar -h

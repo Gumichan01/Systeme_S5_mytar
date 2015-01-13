@@ -4,7 +4,7 @@
 *
 *	@file mytar_posix_lib.h
 *
-*	@brief Fichier bibliothèque mytar_posix_lib.h. 
+*	@brief Fichier bibliothèque mytar_posix_lib.h.
 *
 *	Il inclut les fichiers issus des bibliothèques POSIX
 *
@@ -22,6 +22,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include<libgen.h>  /*pour la fonction basename()*/
 
 #include <dirent.h>
 
