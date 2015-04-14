@@ -1,4 +1,0 @@
-nom    |no ligne| Commentaire
-
-mytar.c:22:	/* TODO améliorer la fonction usage() pour que ce soit plus clair pour l'utilisateur : void usage(char * prog) */
-mytar.c:23:	/* TODO par exemple lister tous les usages possibles du programme : void usage(char * prog) */
